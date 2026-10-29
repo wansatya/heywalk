@@ -34,7 +34,7 @@ services:
       dockerfile: docker/web.Dockerfile
     image: heywalk-web:latest
     ports:
-      - "8080:80"
+      - "1666:80"
     depends_on:
       - api
     restart: unless-stopped
