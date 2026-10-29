@@ -509,3 +509,17 @@ def test_generate_502_carries_structured_diagnosis(client, project_id, monkeypat
 
 def test_model_requests_unknown_project_is_404(client):
     assert client.get("/api/projects/missing/model-requests").status_code == 404
+
+
+def test_microduck_mesh_assets_are_cacheable(client):
+    # The 3D view downloads ~21 MB of STLs; without cache headers every
+    # simulator load re-fetches them and crowds API calls off the
+    # browser's per-origin connections on slow links.
+    response = client.get("/api/robots/microduck/assets/sole_left.stl")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "model/stl"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert (
+        client.get("/api/robots/microduck/assets/no_such_mesh.stl").status_code
+        == 404
+    )

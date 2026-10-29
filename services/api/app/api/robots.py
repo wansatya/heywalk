@@ -96,8 +96,15 @@ def microduck_asset(filename: str) -> FileResponse:
         path = resolve_asset(filename)
     except MicroduckModelError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    # Vendored meshes (~21 MB over ~38 files) are stable per release, so let
+    # browsers cache them: without this every simulator load re-downloads all
+    # meshes, saturating the browser's per-origin connection pool and
+    # starving API calls behind the bulk download on slow links.
     return FileResponse(
-        path, media_type="model/stl", filename=filename
+        path,
+        media_type="model/stl",
+        filename=filename,
+        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 

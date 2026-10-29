@@ -124,8 +124,18 @@ function put<T>(path: string, body: unknown, timeoutMs?: number): Promise<T> {
   return request<T>(path, { method: 'PUT', body: JSON.stringify(body) }, timeoutMs)
 }
 
-function get<T>(path: string, timeoutMs?: number): Promise<T> {
-  return request<T>(path, { method: 'GET' }, timeoutMs)
+async function get<T>(path: string, timeoutMs?: number): Promise<T> {
+  try {
+    return await request<T>(path, { method: 'GET' }, timeoutMs)
+  } catch (err) {
+    // One retry for idempotent reads: on a slow link a GET can lose the
+    // race for the browser's per-origin connections (bulk mesh downloads)
+    // and hit the client timeout even though the server is healthy.
+    if (err instanceof ApiError && err.kind === 'timeout') {
+      return request<T>(path, { method: 'GET' }, timeoutMs)
+    }
+    throw err
+  }
 }
 
 function del<T>(path: string, timeoutMs?: number): Promise<T> {

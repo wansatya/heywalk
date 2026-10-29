@@ -51,6 +51,13 @@ const AD_TOP_MARGIN = 0.02
  * Slow enough to inspect the duck while it reads as alive.
  */
 const AUTO_ORBIT_SPEED = 0.9
+/**
+ * Mesh downloads in flight at once. Browsers allow ~6 connections per
+ * origin; fetching all ~38 STLs at once saturated the pool, so API calls
+ * (e.g. the file list) queued behind the bulk download and could hit the
+ * client's 30 s timeout on slow links. 4 leaves headroom for API traffic.
+ */
+const MESH_FETCH_CONCURRENCY = 4
 
 export type LayoutChangeHandler = (layout: SimLayout) => void
 
@@ -198,6 +205,8 @@ export class MicroduckScene {
   private geometries: THREE.BufferGeometry[] = []
   private soccerTexture: THREE.Texture | null = null
   private adTextures: THREE.Texture[] = []
+  /** Walls awaiting billboard probing; started after the meshes load. */
+  private pendingWallAds: Array<{ group: THREE.Group; body: string; geom: MicroduckEnvGeom }> = []
   private disposed = false
   private layout: SimLayout = { duck: null, props: {} }
   private arrangeCb: LayoutChangeHandler | null = null
@@ -348,16 +357,26 @@ export class MicroduckScene {
           group.add(mesh)
         }
       }
-      if (fixed && env.geoms.length > 0) this.addWallAds(group, env.body, env.geoms[0])
+      if (fixed && env.geoms.length > 0) {
+        this.pendingWallAds.push({ group, body: env.body, geom: env.geoms[0] })
+      }
     }
   }
 
-  /** Billboard panels on a wall's inner face (async; plain wall fallback). */
-  private addWallAds(group: THREE.Group, body: string, geom: MicroduckEnvGeom): void {
-    const side = body.startsWith('env_wall_') ? body.slice('env_wall_'.length) : ''
-    if (!['px', 'nx', 'py', 'ny'].includes(side)) return
-    if (geom.type !== 'box' || geom.size.length < 3) return
-    void this.layoutWallAds(group, side, geom)
+  /**
+   * Billboard panels on the walls' inner faces (async; plain wall
+   * fallback). Deferred until the meshes finish so the ~40 ad probes
+   * (mostly misses) never compete with duck downloads or API calls for
+   * the browser's per-origin connections.
+   */
+  private startWallAds(): void {
+    for (const { group, body, geom } of this.pendingWallAds) {
+      const side = body.startsWith('env_wall_') ? body.slice('env_wall_'.length) : ''
+      if (!['px', 'nx', 'py', 'ny'].includes(side)) continue
+      if (geom.type !== 'box' || geom.size.length < 3) continue
+      void this.layoutWallAds(group, side, geom)
+    }
+    this.pendingWallAds = []
   }
 
   private async layoutWallAds(
@@ -486,25 +505,37 @@ export class MicroduckScene {
     const geometries = new Map<string, THREE.BufferGeometry>()
     const report = () => this.options.onProgress?.(loaded, total)
 
-    await Promise.all(
-      files.map(async (file) => {
-        if (this.disposed) return
-        try {
-          const response = await fetch(this.options.assetUrl(file))
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const buffer = await response.arrayBuffer()
-          const geometry = loader.parse(buffer)
-          geometry.computeVertexNormals()
-          this.geometries.push(geometry)
-          geometries.set(file, geometry)
-        } catch {
-          failed.push(file)
-        } finally {
-          loaded += 1
-          report()
+    // Bounded worker pool instead of one fetch per file: all-at-once
+    // fetching hogged the browser's per-origin connections and starved
+    // API calls behind the ~21 MB mesh download on slow links.
+    let next = 0
+    const workers = Array.from(
+      { length: Math.min(MESH_FETCH_CONCURRENCY, Math.max(files.length, 1)) },
+      async () => {
+        for (;;) {
+          if (this.disposed) return
+          const index = next
+          next += 1
+          if (index >= files.length) return
+          const file = files[index]
+          try {
+            const response = await fetch(this.options.assetUrl(file))
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const buffer = await response.arrayBuffer()
+            const geometry = loader.parse(buffer)
+            geometry.computeVertexNormals()
+            this.geometries.push(geometry)
+            geometries.set(file, geometry)
+          } catch {
+            failed.push(file)
+          } finally {
+            loaded += 1
+            report()
+          }
         }
-      }),
+      },
     )
+    await Promise.all(workers)
     if (this.disposed) return { failed }
 
     const fallbackGeometry = this.track(new THREE.SphereGeometry(0.007, 12, 10))
@@ -529,6 +560,7 @@ export class MicroduckScene {
       mesh.receiveShadow = false
       group.add(mesh)
     }
+    this.startWallAds()
     return { failed }
   }
 
