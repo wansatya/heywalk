@@ -1,0 +1,16 @@
+# Keep build contexts lean and secrets out of images.
+.git
+.gitignore
+.env
+node_modules
+apps/web/node_modules
+apps/web/dist
+services/api/.venv
+services/api/.pytest_cache
+__pycache__
+*.pyc
+*.db
+heywalk.db
+coverage/
+*.log
+.DS_Store

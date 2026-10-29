@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+.venv
+__pycache__/
+*.pyc
+*.db
+*.db-journal
+# created per project, visible on host via bind mount.
+sequences/

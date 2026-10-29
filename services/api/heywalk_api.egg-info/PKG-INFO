@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: heywalk-api
+Version: 0.1.0
+Summary: HeyWalk FastAPI backend: projects, AI generation, run orchestration (AGENTS.md sections 5, 10-12).
+Requires-Python: >=3.12
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn[standard]>=0.30
+Requires-Dist: pydantic>=2.7
+Requires-Dist: httpx>=0.27
+Provides-Extra: sim
+Requires-Dist: mujoco>=3.2; extra == "sim"
+Requires-Dist: numpy>=1.26; extra == "sim"
+Requires-Dist: onnxruntime>=1.20; extra == "sim"
+Provides-Extra: test
+Requires-Dist: pytest>=8; extra == "test"
+Requires-Dist: mujoco>=3.2; extra == "test"
+Requires-Dist: numpy>=1.26; extra == "test"
+Requires-Dist: onnxruntime>=1.20; extra == "test"

@@ -1,0 +1,40 @@
+[project]
+name = "heywalk-api"
+version = "0.1.0"
+description = "HeyWalk FastAPI backend: projects, AI generation, run orchestration (AGENTS.md sections 5, 10-12)."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# The MuJoCo physics engine runs inside the isolated runner (and in the
+# automated-test path). The API process never imports it: evaluation works
+# from recorded test evidence only (see app/simulator/mujoco_tests.py).
+sim = [
+  "mujoco>=3.2",
+  "numpy>=1.26",
+  "onnxruntime>=1.20",
+]
+test = [
+  "pytest>=8",
+  "mujoco>=3.2",
+  "numpy>=1.26",
+  "onnxruntime>=1.20",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+# The service code lives in app/ only. Explicit discovery keeps sibling
+# dev-data dirs (projects/, tests/, scripts/) out of the distribution.
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
