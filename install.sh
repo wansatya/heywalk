@@ -339,7 +339,9 @@ main() {
 }
 
 # Sourcing the file (e.g. in a test) defines the functions without running.
-if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+# BASH_SOURCE is empty when the script arrives on stdin (curl | bash):
+# that is a real run, not a source.
+if [ -z "${BASH_SOURCE[0]:-}" ] || [ "${BASH_SOURCE[0]}" = "$0" ]; then
   main "$@"
 fi
 
