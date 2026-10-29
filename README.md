@@ -1,8 +1,35 @@
-# HeyWalk
+<div align="center"><pre>
+██   ██ ███████ ██   ██ ██     ██  █████  ██      ██   ██
+██   ██ ██      ██   ██ ██     ██ ██   ██ ██      ██  ██
+███████ ██████   ██ ██  ██  █  ██ ███████ ██      ████
+██   ██ ██        ███   ██ █ █ ██ ██   ██ ██      ██ ██
+██   ██ ██         █    ███   ███ ██   ██ ██      ██  ██
+██   ██ ███████    █     ██   ██  ██   ██ ███████ ██   ██
+</pre></div>
 
 ### Make AI-generated robot behaviors prove they work.
 
-**From thought to motion.**
+<br/>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square"></a>
+  <a href="services/api/pyproject.toml"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white"></a>
+  <a href="apps/web"><img alt="Web: React 18 + TypeScript" src="https://img.shields.io/badge/web-React%2018%20%2B%20TS-3178C6?style=flat-square&logo=react&logoColor=white"></a>
+  <a href="https://docs.ros.org/en/jazzy/"><img alt="ROS 2 Jazzy" src="https://img.shields.io/badge/ROS%202-Jazzy-22314E?style=flat-square&logo=ros&logoColor=white"></a>
+  <a href="https://mujoco.org/"><img alt="Physics: MuJoCo" src="https://img.shields.io/badge/physics-MuJoCo-1a1a1a?style=flat-square"></a>
+  <a href="https://onnxruntime.ai/"><img alt="Gait: ONNX Runtime" src="https://img.shields.io/badge/gait-ONNX%20Runtime-005CED?style=flat-square"></a>
+  <a href="https://ai.meta.com/"><img alt="AI: Meta Muse Spark" src="https://img.shields.io/badge/AI-Meta%20Muse%20Spark-0866FF?style=flat-square"></a>
+  <a href="docker/runner.Dockerfile"><img alt="Runs: isolated Docker container" src="https://img.shields.io/badge/runs-isolated%20Docker-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
+  <a href="services/api/tests"><img alt="Backend tests: 391 passing" src="https://img.shields.io/badge/backend%20tests-391%20passing-2ea043?style=flat-square"></a>
+</p>
+
+<p align="center">
+  <a href="showcase.mp4" title="Play the HeyWalk showcase">
+    <img src="showcase-poster.jpg" alt="HeyWalk workspace: the MicroDuck standing in the MuJoCo scene with the goal flag, ball, and crates" width="880">
+  </a>
+  <br/>
+  <sub>▶ <a href="showcase.mp4">Watch the 73-second showcase</a> (MP4, 11 MB)</sub>
+</p>
 
 AI can generate robot code. But generated code is not **proof that a robot can perform the task safely**.
 
@@ -367,9 +394,10 @@ heywalk/
 │   └── tests/           # backend suite (391 tests)
 ├── ros2_ws/             # ROS 2 controller template and bridge
 ├── docker/              # API, web, and isolated ROS 2 runner images
-├── docs/                # architecture, demo script, MicroDuck integration
 ├── docker-compose.yml   # local development stack
-└── .env.example         # backend configuration template
+├── .env.example         # backend configuration template
+├── showcase.mp4         # 73-second demo walkthrough
+└── showcase-poster.jpg  # poster frame used by this README
 ```
 
 <br/>
@@ -475,7 +503,7 @@ The starter controller tracks joint targets and steers toward the goal with a fi
 
 A run is not marked successful merely because the model says it worked. The evaluator must confirm the objective: every phase met, no disqualifying contact, no fall, and a normal termination (MuJoCo locomotion or joint tests), or the goal reached within tolerance while meeting the safety criteria (2D arena).
 
-For the full integration record — model provenance, measured behaviour, latency and memory budgets, and known limitations — see `docs/microduck-integration.md` and `docs/architecture.md`.
+For model provenance, licenses, and attributions — including the MicroDuck MJCF/meshes and the upstream walking policy — see `services/api/app/simulator/microduck/ATTRIBUTION.md`. The measured budgets above come from the runner and API sources in this repository.
 
 <br/>
 
