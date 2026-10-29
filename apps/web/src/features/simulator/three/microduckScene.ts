@@ -183,10 +183,55 @@ function makeSoccerTexture(): THREE.CanvasTexture {
   return texture
 }
 
+interface BundleEntry {
+  name: string
+  size: number
+  bytes: ArrayBuffer
+}
+
+/**
+ * Split a mesh bundle into its files (u32 manifest length, manifest
+ * JSON, concatenated bytes). Throws when the framing is corrupt so the
+ * caller falls back to per-file loading.
+ */
+function unpackBundle(body: Uint8Array): BundleEntry[] {
+  const view = new DataView(body.buffer, body.byteOffset, body.byteLength)
+  if (view.byteLength < 4) throw new Error('truncated bundle')
+  const manifestLength = view.getUint32(0, true)
+  if (4 + manifestLength > view.byteLength) throw new Error('truncated bundle')
+  const manifest = JSON.parse(
+    new TextDecoder().decode(
+      new Uint8Array(body.buffer, body.byteOffset + 4, manifestLength),
+    ),
+  ) as unknown
+  if (!Array.isArray(manifest)) throw new Error('corrupt bundle')
+  let offset = 4 + manifestLength
+  return manifest.map((raw) => {
+    const entry = raw as { name?: unknown; size?: unknown } | null
+    if (
+      typeof entry?.name !== 'string' ||
+      typeof entry?.size !== 'number' ||
+      !Number.isInteger(entry.size) ||
+      entry.size < 0 ||
+      offset + entry.size > view.byteLength
+    ) {
+      throw new Error('corrupt bundle')
+    }
+    const bytes = body.buffer.slice(
+      body.byteOffset + offset,
+      body.byteOffset + offset + entry.size,
+    )
+    offset += entry.size
+    return { name: entry.name, size: entry.size, bytes }
+  })
+}
+
 export interface MicroduckSceneOptions {
   /** Resolves a mesh filename (e.g. "sole_left.stl") to its download URL. */
   assetUrl: (filename: string) => string
-  /** Called as each unique STL finishes (loaded, total). */
+  /** Single-response bundle with every mesh the scene needs. */
+  bundleUrl: string
+  /** Called as loading progresses (loaded, total); never moves backward. */
   onProgress?: (loaded: number, total: number) => void
 }
 
@@ -503,39 +548,25 @@ export class MicroduckScene {
     let loaded = 0
     const failed: string[] = []
     const geometries = new Map<string, THREE.BufferGeometry>()
-    const report = () => this.options.onProgress?.(loaded, total)
+    // Progress never moves backward: the bundle download maps bytes to
+    // file-equivalents, then per-file fallback continues the count.
+    const report = (count: number) => {
+      loaded = Math.max(loaded, Math.min(count, total))
+      this.options.onProgress?.(loaded, total)
+    }
 
-    // Bounded worker pool instead of one fetch per file: all-at-once
-    // fetching hogged the browser's per-origin connections and starved
-    // API calls behind the ~21 MB mesh download on slow links.
-    let next = 0
-    const workers = Array.from(
-      { length: Math.min(MESH_FETCH_CONCURRENCY, Math.max(files.length, 1)) },
-      async () => {
-        for (;;) {
-          if (this.disposed) return
-          const index = next
-          next += 1
-          if (index >= files.length) return
-          const file = files[index]
-          try {
-            const response = await fetch(this.options.assetUrl(file))
-            if (!response.ok) throw new Error(`HTTP ${response.status}`)
-            const buffer = await response.arrayBuffer()
-            const geometry = loader.parse(buffer)
-            geometry.computeVertexNormals()
-            this.geometries.push(geometry)
-            geometries.set(file, geometry)
-          } catch {
-            failed.push(file)
-          } finally {
-            loaded += 1
-            report()
-          }
-        }
-      },
-    )
-    await Promise.all(workers)
+    // One round trip for all meshes; per-file requests only fill gaps
+    // (an old backend without the bundle endpoint, or a partial bundle).
+    try {
+      await this.loadBundled(loader, files, geometries, report)
+    } catch {
+      // Fall through to per-file loading below.
+    }
+    if (this.disposed) return { failed }
+    const missing = files.filter((file) => !geometries.has(file))
+    if (missing.length > 0) {
+      await this.loadPerFile(loader, missing, geometries, failed, report, geometries.size)
+    }
     if (this.disposed) return { failed }
 
     const fallbackGeometry = this.track(new THREE.SphereGeometry(0.007, 12, 10))
@@ -562,6 +593,96 @@ export class MicroduckScene {
     }
     this.startWallAds()
     return { failed }
+  }
+
+  /**
+   * Download all meshes in one response (see the bundle endpoint for the
+   * framing). Reports byte progress mapped to file-equivalents and yields
+   * to the UI while parsing; throws on any failure so the caller falls
+   * back to per-file loading.
+   */
+  private async loadBundled(
+    loader: STLLoader,
+    files: string[],
+    geometries: Map<string, THREE.BufferGeometry>,
+    report: (count: number) => void,
+  ): Promise<void> {
+    const wanted = new Set(files)
+    const response = await fetch(this.options.bundleUrl)
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`)
+    const totalBytes = Number(response.headers.get('content-length') ?? 0)
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let received = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      received += value.length
+      if (totalBytes > 0) report(Math.floor((received / totalBytes) * files.length))
+    }
+    const body = new Uint8Array(received)
+    let at = 0
+    for (const chunk of chunks) {
+      body.set(chunk, at)
+      at += chunk.length
+    }
+    let parsed = 0
+    for (const entry of unpackBundle(body)) {
+      if (this.disposed) return
+      if (wanted.has(entry.name) && !geometries.has(entry.name)) {
+        // No computeVertexNormals: binary STL already carries facet
+        // normals, and recomputing them is pure main-thread cost.
+        const geometry = loader.parse(entry.bytes)
+        this.geometries.push(geometry)
+        geometries.set(entry.name, geometry)
+      }
+      parsed += 1
+      if (parsed % 4 === 0) await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    report(files.length)
+  }
+
+  /**
+   * Fetch mesh files one by one with bounded concurrency, for backends
+   * without the bundle endpoint or files missing from it.
+   */
+  private async loadPerFile(
+    loader: STLLoader,
+    files: string[],
+    geometries: Map<string, THREE.BufferGeometry>,
+    failed: string[],
+    report: (count: number) => void,
+    base: number,
+  ): Promise<void> {
+    let next = 0
+    let done = 0
+    const workers = Array.from(
+      { length: Math.min(MESH_FETCH_CONCURRENCY, Math.max(files.length, 1)) },
+      async () => {
+        for (;;) {
+          if (this.disposed) return
+          const index = next
+          next += 1
+          if (index >= files.length) return
+          const file = files[index]
+          try {
+            const response = await fetch(this.options.assetUrl(file))
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            const buffer = await response.arrayBuffer()
+            const geometry = loader.parse(buffer)
+            this.geometries.push(geometry)
+            geometries.set(file, geometry)
+          } catch {
+            failed.push(file)
+          } finally {
+            done += 1
+            report(base + done)
+          }
+        }
+      },
+    )
+    await Promise.all(workers)
   }
 
   /** Pose every known body group from one telemetry frame (or the preview). */

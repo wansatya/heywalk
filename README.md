@@ -47,6 +47,16 @@ Built for the Meta Global AI Developer Hackathon 2026 — *Push the Frontier*.
 
 <br/>
 
+## Quick install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wansatya/heywalk/main/install.sh | bash
+```
+
+Installs Docker when missing, clones this repo to `~/.heywalk`, builds the images, and starts the stack. Then open [http://localhost:8021](http://localhost:8021). The installer asks for an optional Meta API key (needed only for AI controller generation and correction — the simulator runs without one); in non-interactive shells set `MODEL_API_KEY` instead and the prompt is skipped. `WEB_PORT` overrides the browser port.
+
+<br/>
+
 ## The idea: Close the loop between AI and robot behavior
 
 Most AI coding workflows end when code is generated. Robotics needs another step: execution in an environment where the consequences of that code can be observed and measured.
@@ -474,7 +484,7 @@ Open [http://localhost:5173](http://localhost:5173). The Vite proxy forwards API
 docker compose up --build
 ```
 
-Open [http://localhost:8080](http://localhost:8080). The web container proxies `/api` and `/health` to the API service.
+Open [http://localhost:8021](http://localhost:8021). The web container proxies `/api` and `/health` to the API service. Set `WEB_PORT` to serve on another host port.
 
 `RUNNER_MEMORY` (default `1024m`) caps each run container. The measured working set of MuJoCo + ONNX + rclpy in one process is ~500 MiB, so the cap leaves roughly 2× headroom; with `--memory-swap` pinned to the cap, a smaller limit would OOM-kill the controller and turn a verdict into a crash.
 

@@ -9,7 +9,7 @@ never produced a usable MJCF.
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from ..db import Store
 from ..models.schemas import (
@@ -81,6 +81,44 @@ def microduck_model() -> dict:
             " reinstall the application."
         )
     return payload
+
+
+@router.get("/api/robots/microduck/assets/bundle")
+def microduck_asset_bundle() -> Response:
+    """Serve every mesh the 3D view needs as one response.
+
+    Fetching ~38 STLs one by one costs ~38 round trips, which dominates
+    simulator load time on high-latency links. The bundle carries the same
+    bytes with one round trip and slightly better gzip (one stream).
+
+    Framing: u32 little-endian manifest length, then the manifest JSON
+    (``[{"name": ..., "size": ...}]`` in blob order), then the raw file
+    bytes concatenated. Declared before ``/{filename}`` so "bundle" is
+    not captured as a mesh name.
+    """
+    import json
+    import struct
+
+    from ..simulator.microduck import (
+        MicroduckModelError,
+        resolve_asset,
+        visual_geoms,
+    )
+
+    try:
+        names = sorted({entry["file"] for entry in visual_geoms()})
+        blobs = [resolve_asset(name).read_bytes() for name in names]
+    except MicroduckModelError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    manifest = json.dumps(
+        [{"name": name, "size": len(blob)} for name, blob in zip(names, blobs)]
+    ).encode("utf-8")
+    body = struct.pack("<I", len(manifest)) + manifest + b"".join(blobs)
+    return Response(
+        content=body,
+        media_type="application/octet-stream",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get("/api/robots/microduck/assets/{filename}")

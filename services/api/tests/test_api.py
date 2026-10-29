@@ -523,3 +523,26 @@ def test_microduck_mesh_assets_are_cacheable(client):
         client.get("/api/robots/microduck/assets/no_such_mesh.stl").status_code
         == 404
     )
+
+
+def test_microduck_mesh_bundle_carries_every_mesh_in_one_response(client):
+    import json
+    import struct
+
+    from app.simulator.microduck import resolve_asset, visual_geoms
+
+    response = client.get("/api/robots/microduck/assets/bundle")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    body = response.content
+    (manifest_length,) = struct.unpack_from("<I", body)
+    manifest = json.loads(body[4 : 4 + manifest_length].decode("utf-8"))
+    assert [entry["name"] for entry in manifest] == sorted(
+        {entry["file"] for entry in visual_geoms()}
+    )
+    offset = 4 + manifest_length
+    for entry in manifest:
+        blob = body[offset : offset + entry["size"]]
+        assert blob == resolve_asset(entry["name"]).read_bytes()
+        offset += entry["size"]
+    assert offset == len(body)

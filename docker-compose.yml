@@ -25,7 +25,8 @@
 #
 # Full stack:
 #   MODEL_API_KEY=[redacted] docker compose up --build
-#   Open http://localhost:8080 (web UI; same-origin /api proxied to the api service).
+#   Open http://localhost:8021 (web UI; same-origin /api proxied to the api service).
+#   Set WEB_PORT to serve on another host port.
 
 services:
   web:
@@ -34,7 +35,7 @@ services:
       dockerfile: docker/web.Dockerfile
     image: heywalk-web:latest
     ports:
-      - "1666:80"
+      - "${WEB_PORT:-8021}:80"
     depends_on:
       - api
     restart: unless-stopped

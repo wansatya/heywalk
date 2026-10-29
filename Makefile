@@ -4,7 +4,7 @@
 # build never runs against (or collides with) an old stack:
 #   make build    # down, then build web + api + runner images
 #   make rebuild  # down, then clean build without cache
-#   make up       # start the full stack (open http://localhost:8080)
+#   make up       # start the full stack (open http://localhost:8021)
 #   make down     # stop and remove project containers
 #   make runner   # build only the isolated runner image (ROS 2 Jazzy + MuJoCo)
 #

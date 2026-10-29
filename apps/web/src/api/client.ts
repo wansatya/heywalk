@@ -250,6 +250,11 @@ export function microduckAssetUrl(filename: string): string {
   return `${API_BASE}/api/robots/microduck/assets/${encodeURIComponent(filename)}`
 }
 
+/** URL of the single-response bundle with every mesh the 3D view needs. */
+export function microduckAssetBundleUrl(): string {
+  return `${API_BASE}/api/robots/microduck/assets/bundle`
+}
+
 // ---- Runs ----
 
 export interface CreateRunOptions {

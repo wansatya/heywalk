@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Move, RotateCcw } from 'lucide-react'
 import { useExperimentStore } from '../../stores/experiment'
 import { CONTROLLER_PATH, useWorkspaceStore } from '../../stores/workspace'
-import { microduckAssetUrl } from '../../api/client'
+import { microduckAssetBundleUrl, microduckAssetUrl } from '../../api/client'
 import { isDefaultLayout, isTerminalStatus } from '../../api/types'
 import { MicroduckScene } from './three/microduckScene'
 import { clearSavedCamera } from './three/cameraState'
@@ -82,6 +82,7 @@ export function MicroduckViewport() {
     try {
       const scene = new MicroduckScene(container, model, {
         assetUrl: microduckAssetUrl,
+        bundleUrl: microduckAssetBundleUrl(),
         onProgress: (loaded, total) => {
           if (!cancelled) setLoadProgress({ loaded, total })
         },
