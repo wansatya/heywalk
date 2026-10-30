@@ -314,6 +314,16 @@ class Store:
                 (utcnow_iso(), project_id),
             )
 
+    def set_project_task_description(
+        self, project_id: str, task_description: str
+    ) -> None:
+        """Replace the sequence task (the prompt the controller is graded against)."""
+        with self._write_lock, self._connect() as conn:
+            conn.execute(
+                "UPDATE projects SET task_description = ?, updated_at = ? WHERE id = ?",
+                (task_description, utcnow_iso(), project_id),
+            )
+
     def set_project_objectives(
         self, project_id: str, objectives: list[dict[str, Any]] | None
     ) -> None:

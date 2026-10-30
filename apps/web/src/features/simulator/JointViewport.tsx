@@ -10,6 +10,7 @@ import {
 } from '../../api/types'
 import { clsx } from '../../components/clsx'
 import { propLabel, objectiveLabel } from './objectiveLabel'
+import { RunPhaseOverlay } from './RunPhaseOverlay'
 
 // The 3D skeleton pulls in three.js; keep it out of the initial bundle.
 const MicroduckViewport = lazy(() =>
@@ -46,44 +47,44 @@ function JointGauge({
   const width = Math.abs(pos - target)
 
   return (
-    <div className="space-y-1.5 rounded-lg border border-border-subtle/50 bg-white/[0.02] p-2.5">
+    <div className="space-y-1.5 rounded-lg border border-border-subtle/60 bg-white p-2.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-2 font-mono text-xs font-semibold text-slate-200">
+        <span className="flex items-center gap-2 font-mono text-xs font-semibold text-stone-800">
           {passed === null ? (
-            <CircleDashed size={12} className="text-slate-500" />
+            <CircleDashed size={12} className="text-stone-400" />
           ) : passed ? (
-            <CheckCircle2 size={12} className="text-emerald-400" />
+            <CheckCircle2 size={12} className="text-emerald-600" />
           ) : (
-            <XCircle size={12} className="text-red-400" />
+            <XCircle size={12} className="text-red-500" />
           )}
           {joint.name}
         </span>
-        <span className="font-mono text-xs text-slate-300 tabular-nums">
+        <span className="font-mono text-xs text-stone-500 tabular-nums">
           {joint.position.toFixed(3)} → {joint.target.toFixed(3)}
         </span>
       </div>
-      <div className="relative h-3.5 w-full overflow-hidden rounded-full border border-white/[0.06] bg-slate-950/70">
+      <div className="relative h-3.5 w-full overflow-hidden rounded-full border border-stone-200 bg-stone-100">
         {/* centre line = zero position */}
-        <span className="absolute left-1/2 top-0 h-full w-px bg-white/15" />
+        <span className="absolute left-1/2 top-0 h-full w-px bg-stone-300" />
         {/* error between commanded target and measured position */}
         <span
-          className="absolute top-0 h-full bg-amber-400/25"
+          className="absolute top-0 h-full bg-amber-200"
           style={{ left: `${left}%`, width: `${width}%` }}
         />
         {/* commanded target marker */}
         <span
-          className="absolute top-0 h-full w-1 bg-sky-300 shadow-xs"
+          className="absolute top-0 h-full w-1 bg-sky-500 shadow-xs"
           style={{ left: `calc(${target}% - 1px)` }}
           title={`target ${joint.target.toFixed(3)}`}
         />
         {/* measured position */}
         <span
-          className="absolute top-0 h-full w-1 rounded-full bg-emerald-300 shadow-xs"
+          className="absolute top-0 h-full w-1 rounded-full bg-emerald-500 shadow-xs"
           style={{ left: `calc(${pos}% - 2px)` }}
           title={`position ${joint.position.toFixed(3)}`}
         />
       </div>
-      <div className="flex justify-between px-0.5 font-mono text-[11px] text-slate-400 tabular-nums">
+      <div className="flex justify-between px-0.5 font-mono text-[11px] text-stone-500 tabular-nums">
         <span>-{scale}</span>
         <span>v {joint.velocity.toFixed(2)} · τ {joint.effort.toFixed(2)}</span>
         <span>+{scale}</span>
@@ -110,23 +111,23 @@ function TestRow({ test, live, estopLimit }: { test: TestResult; live: boolean; 
       className={clsx(
         'flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg border px-3 py-1.5 font-mono text-xs leading-normal',
         test.passed
-          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-          : 'border-red-500/30 bg-red-500/10 text-red-200',
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-red-200 bg-red-50 text-red-900',
       )}
     >
-      {test.passed ? <CheckCircle2 size={12} className="shrink-0 text-emerald-400" /> : <XCircle size={12} className="shrink-0 text-red-400" />}
+      {test.passed ? <CheckCircle2 size={12} className="shrink-0 text-emerald-600" /> : <XCircle size={12} className="shrink-0 text-red-500" />}
       <span className="font-sans font-semibold">
         {isEstop ? 'Emergency stop' : isLocomotion ? locomotionLabel(test) : (test.joint ?? test.id)}
       </span>
       {isEstop ? (
-        <span className="text-slate-300 tabular-nums">
+        <span className="text-stone-600 tabular-nums">
           stop latency{' '}
           {test.settling_time != null ? `${test.settling_time.toFixed(3)}s` : '—'}
           {estopLimit !== undefined ? ` / limit ${estopLimit.toFixed(2)}s` : ''} · vmax{' '}
           {test.max_velocity?.toFixed(2) ?? '—'}
         </span>
       ) : isLocomotion ? (
-        <span className="text-slate-300 tabular-nums">
+        <span className="text-stone-600 tabular-nums">
           {test.phases && test.phases > 1 ? `phase ${test.phase ?? 1}/${test.phases} · ` : ''}
           walked {test.distance_m?.toFixed(2) ?? '—'} m
           {isKick ? (
@@ -150,11 +151,11 @@ function TestRow({ test, live, estopLimit }: { test: TestResult; live: boolean; 
         </span>
       ) : (
         <>
-          <span className="text-slate-300 tabular-nums">
+          <span className="text-stone-600 tabular-nums">
             target {test.target?.toFixed(3) ?? '—'} · got {test.final_position?.toFixed(3) ?? '—'} · err{' '}
             {test.final_error.toFixed(3)} / tol {test.tolerance.toFixed(3)}
           </span>
-          <span className="text-slate-400 tabular-nums">
+          <span className="text-stone-500 tabular-nums">
             peak err {test.max_error?.toFixed(3) ?? '—'} · vmax {test.max_velocity?.toFixed(2) ?? '—'} ·{' '}
             {test.duration?.toFixed(2) ?? '—'}s
             {test.settling_time != null ? ` · settle ${test.settling_time.toFixed(2)}s` : ''}
@@ -163,22 +164,22 @@ function TestRow({ test, live, estopLimit }: { test: TestResult; live: boolean; 
         </>
       )}
       {!test.passed && test.reason && (
-        <span className="w-full font-sans text-red-300">{test.reason}</span>
+        <span className="w-full font-sans text-red-700">{test.reason}</span>
       )}
-      {live && <span className="font-sans text-slate-400">(executing)</span>}
+      {live && <span className="font-sans text-stone-500">(executing)</span>}
     </div>
   )
 }
 
 function PlannedRow({ test }: { test: PlannedTest }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border-subtle/70 bg-white/[0.02] px-3 py-1.5 font-mono text-xs text-slate-400">
-      <CircleDashed size={12} className="shrink-0 text-slate-500" />
-      <span className="font-sans font-medium text-slate-300">{test.joint}</span>
+    <div className="flex items-center gap-2 rounded-lg border border-border-subtle/70 bg-stone-50 px-3 py-1.5 font-mono text-xs text-stone-500">
+      <CircleDashed size={12} className="shrink-0 text-stone-400" />
+      <span className="font-sans font-medium text-stone-700">{test.joint}</span>
       <span className="tabular-nums">
         target {test.target.toFixed(3)} · tol {test.tolerance.toFixed(3)}
       </span>
-      <span className="ml-auto font-sans text-[11px] text-slate-500">pending</span>
+      <span className="ml-auto font-sans text-[11px] text-stone-400">pending</span>
     </div>
   )
 }
@@ -251,42 +252,17 @@ export function JointViewport() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-base">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle/80 bg-sidebar/50 px-3.5 py-2 text-xs backdrop-blur-xs">
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/25 bg-sky-500/15 px-2.5 py-1 text-xs font-semibold text-sky-300">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
           <Cpu size={12} />
           {BACKEND_LABELS.mujoco}
         </span>
-        {world && (
-          <span className="rounded-md border border-border-subtle/60 bg-white/[0.03] px-2 py-0.5 font-mono text-xs text-slate-400">
-            {world.model_path}
-          </span>
-        )}
-        {world && (
-          <span
-            className="rounded-md bg-white/[0.08] px-2 py-0.5 text-xs font-medium text-slate-300"
-            title={
-              world.fix_base
-                ? 'Trunk welded to a joint test stand; tracking is graded without falls'
-                : 'Free-standing trunk; a fall fails the run'
-            }
-          >
-            {world.fix_base ? 'test stand' : 'free-standing'}
-          </span>
-        )}
-        {world?.locomotion === true && (
-          <span
-            className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-200"
-            title="Locomotion run: the built-in walking policy walks while your controller steers with /cmd_vel"
-          >
-            {objectiveLabel(world.objective ?? null).replace('Objective: ', '')}
-          </span>
-        )}
         {contacts > 0 && (
-          <span className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-slate-950 shadow-xs">
+          <span className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-white shadow-xs">
             Contacts {contacts} · {peakForce.toFixed(1)} N
           </span>
         )}
         {expectedContacts > 0 && (
-          <span className="rounded-md bg-slate-500/30 px-2 py-0.5 text-xs text-slate-300" title="Foot-sole ground touches (expected, not collisions)">
+          <span className="rounded-md bg-stone-100 px-2 py-0.5 text-xs text-stone-600" title="Foot-sole ground touches (expected, not collisions)">
             Feet ×{expectedContacts}
           </span>
         )}
@@ -303,7 +279,7 @@ export function JointViewport() {
           </span>
         )}
         <div
-          className="ml-auto flex items-center gap-1 rounded-lg border border-border-subtle/80 bg-black/40 p-0.5"
+          className="ml-auto flex items-center gap-1 rounded-lg border border-border-subtle/80 bg-white p-0.5"
           role="tablist"
           aria-label="Simulator view"
         >
@@ -315,11 +291,11 @@ export function JointViewport() {
             title="Show the 3D MicroDuck view"
             className={clsx(
               'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
-              view === 'model' ? 'bg-sky-500 text-slate-950 shadow-xs' : 'text-slate-400 hover:text-slate-200',
+              view === 'model' ? 'bg-sky-500 text-white shadow-xs' : 'text-stone-500 hover:text-stone-800',
             )}
           >
             <Box size={12} />
-            3D
+            World
           </button>
           <button
             type="button"
@@ -329,7 +305,7 @@ export function JointViewport() {
             title="Show the joint telemetry gauges"
             className={clsx(
               'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
-              view === 'joints' ? 'bg-sky-500 text-slate-950 shadow-xs' : 'text-slate-400 hover:text-slate-200',
+              view === 'joints' ? 'bg-sky-500 text-white shadow-xs' : 'text-stone-500 hover:text-stone-800',
             )}
           >
             <Activity size={12} />
@@ -341,7 +317,7 @@ export function JointViewport() {
             className={clsx(
               'rounded-lg px-2.5 py-1 text-xs font-bold shadow-xs',
               passed === tests.length
-                ? 'bg-emerald-500 text-slate-950'
+                ? 'bg-emerald-500 text-white'
                 : 'bg-red-500 text-white',
             )}
           >
@@ -351,6 +327,7 @@ export function JointViewport() {
       </div>
 
       <div className="relative min-h-0 flex-1">
+        <RunPhaseOverlay />
         {view === 'model' ? (
           <Suspense fallback={null}>
             <MicroduckViewport />
@@ -359,9 +336,9 @@ export function JointViewport() {
           <div className="h-full overflow-y-auto p-3.5">
             {joints.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-                <Activity size={20} className="text-slate-600" />
-                <p className="text-xs text-slate-400">No joint telemetry yet.</p>
-                <p className="max-w-xs text-xs text-slate-500 leading-relaxed">
+                <Activity size={20} className="text-stone-400" />
+                <p className="text-xs text-stone-500">No joint telemetry yet.</p>
+                <p className="max-w-xs text-xs text-stone-400 leading-relaxed">
                   Start a run to stream measured joint positions, velocities, and the
                   automated test results here.
                 </p>
@@ -384,7 +361,7 @@ export function JointViewport() {
         {(sensors || tests.length > 0 || planned.length > 0) && (
           <div className="absolute inset-x-3 bottom-3 flex max-h-[60%] flex-col gap-1.5">
             {sensors && (
-              <div className="pointer-events-none flex shrink-0 flex-col gap-1 self-start rounded-lg border border-border-subtle/60 bg-black/75 px-2.5 py-1 font-mono text-[11px] text-slate-300 shadow-xl backdrop-blur-md">
+              <div className="pointer-events-none flex shrink-0 flex-col gap-1 self-start rounded-lg border border-border-subtle/60 bg-white/85 px-2.5 py-1 font-mono text-[11px] text-stone-600 shadow-xl backdrop-blur-md">
                 {Object.entries(sensors).map(([name, values]) => (
                   <span key={name} className="whitespace-nowrap">
                     {name} [{values.map((v) => v.toFixed(2)).join(' ')}]
@@ -394,57 +371,57 @@ export function JointViewport() {
             )}
             {(tests.length > 0 || planned.length > 0) &&
               (testsOpen ? (
-            <div className="min-h-0 space-y-1.5 overflow-y-auto rounded-xl border border-border-subtle/80 bg-slate-950/85 p-3 shadow-2xl backdrop-blur-md">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Automated tests
-                </p>
-                {finished && (
-                  <span
-                    className={clsx(
-                      'rounded-md px-2 py-0.5 font-mono text-xs font-bold',
-                      passed === tests.length
-                        ? 'bg-emerald-500 text-slate-950'
-                        : 'bg-red-500 text-white',
+                <div className="min-h-0 space-y-1.5 overflow-y-auto rounded-xl border border-border-subtle/80 bg-white/90 p-3 shadow-2xl backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                      Automated tests
+                    </p>
+                    {finished && (
+                      <span
+                        className={clsx(
+                          'rounded-md px-2 py-0.5 font-mono text-xs font-bold',
+                          passed === tests.length
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-red-500 text-white',
+                        )}
+                      >
+                        {passed}/{tests.length}
+                      </span>
                     )}
-                  >
-                    {passed}/{tests.length}
-                  </span>
-                )}
+                    <button
+                      type="button"
+                      onClick={() => setTestsOpen(false)}
+                      title="Hide the automated tests panel"
+                      aria-label="Hide automated tests"
+                      className="ml-auto rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  {tests.map((test) => (
+                    <TestRow
+                      key={test.id}
+                      test={test}
+                      live={test.id === liveTestId}
+                      estopLimit={world?.estop_latency_limit}
+                    />
+                  ))}
+                  {planned
+                    .filter((test) => !tests.some((done) => done.id === test.id))
+                    .map((test) => (
+                      <PlannedRow key={test.id} test={test} />
+                    ))}
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setTestsOpen(false)}
-                  title="Hide the automated tests panel"
-                  aria-label="Hide automated tests"
-                  className="ml-auto rounded p-1 text-slate-400 hover:bg-white/10 hover:text-slate-100"
+                  onClick={() => setTestsOpen(true)}
+                  title="Show the automated tests panel"
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-border-subtle/80 bg-white/90 px-3 py-1.5 text-xs font-medium text-stone-700 shadow-xl backdrop-blur-md hover:bg-white transition-colors"
                 >
-                  <X size={14} />
+                  <ListChecks size={14} />
+                  Tests{finished ? ` ${passed}/${tests.length}` : ''}
                 </button>
-              </div>
-              {tests.map((test) => (
-                <TestRow
-                  key={test.id}
-                  test={test}
-                  live={test.id === liveTestId}
-                  estopLimit={world?.estop_latency_limit}
-                />
-              ))}
-              {planned
-                .filter((test) => !tests.some((done) => done.id === test.id))
-                .map((test) => (
-                  <PlannedRow key={test.id} test={test} />
-                ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setTestsOpen(true)}
-              title="Show the automated tests panel"
-              className="inline-flex items-center gap-2 self-start rounded-lg border border-border-subtle/80 bg-slate-950/80 px-3 py-1.5 text-xs font-medium text-slate-200 shadow-xl backdrop-blur-md hover:bg-slate-900 transition-colors"
-            >
-              <ListChecks size={14} />
-              Tests{finished ? ` ${passed}/${tests.length}` : ''}
-            </button>
               ))}
           </div>
         )}

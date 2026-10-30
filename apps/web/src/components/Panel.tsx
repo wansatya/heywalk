@@ -21,8 +21,8 @@ export function Panel({
         className,
       )}
     >
-      <header className="flex min-h-[40px] shrink-0 items-center justify-between gap-2.5 border-b border-border-subtle/80 bg-elevated/70 px-3.5 py-2">
-        <h2 className="select-none text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <header className="flex min-h-[40px] shrink-0 items-center justify-between gap-2.5 border-b border-border-subtle/80 bg-sidebar/70 px-3.5 py-2">
+        <h2 className="select-none text-[11px] font-semibold uppercase tracking-wider text-stone-500">
           {title}
         </h2>
         {actions && <div className="flex items-center gap-1.5">{actions}</div>}
@@ -47,12 +47,12 @@ export function ActionButton({
 }) {
   const styles =
     variant === 'primary'
-      ? 'bg-amber-400 text-slate-950 font-semibold shadow-sm hover:bg-amber-300 disabled:bg-amber-400/30 disabled:text-slate-600 active:scale-[0.98]'
+      ? 'bg-amber-600 text-white font-semibold shadow-sm hover:bg-amber-500 disabled:bg-amber-200 disabled:text-amber-400 active:scale-[0.98]'
       : variant === 'danger'
-        ? 'bg-red-500/15 text-red-200 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-40 active:scale-[0.98]'
+        ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-40 active:scale-[0.98]'
         : variant === 'ghost'
-          ? 'text-slate-300 hover:text-white hover:bg-white/[0.06] disabled:opacity-40 active:scale-[0.98]'
-          : 'bg-white/[0.04] text-slate-200 border border-border-subtle hover:bg-white/[0.08] hover:text-white disabled:opacity-40 shadow-sm active:scale-[0.98]'
+          ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 disabled:opacity-40 active:scale-[0.98]'
+          : 'bg-white text-stone-700 border border-border-subtle hover:bg-stone-50 hover:text-stone-900 disabled:opacity-40 shadow-sm active:scale-[0.98]'
   return (
     <button
       type="button"
@@ -79,14 +79,14 @@ export function ErrorNotice({
   onRetry?: () => void
 }) {
   return (
-    <div className="m-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3.5 text-xs leading-relaxed text-red-200 shadow-sm">
+    <div className="m-3 rounded-lg border border-red-200 bg-red-50 p-3.5 text-xs leading-relaxed text-red-700 shadow-sm">
       <p className="break-words">{message}</p>
-      {hint && <p className="mt-1.5 break-words text-amber-200/90 font-sans">Hint: {hint}</p>}
+      {hint && <p className="mt-1.5 break-words text-amber-700 font-sans">Hint: {hint}</p>}
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-2.5 rounded-md border border-red-500/40 bg-red-500/20 px-2.5 py-1 text-xs font-medium hover:bg-red-500/30 transition-colors"
+          className="mt-2.5 rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-medium hover:bg-red-200 transition-colors"
         >
           Retry
         </button>
@@ -97,8 +97,8 @@ export function ErrorNotice({
 
 export function LoadingRow({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium text-slate-400">
-      <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+    <div className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium text-stone-500">
+      <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-400 border-t-transparent" />
       {label}
     </div>
   )

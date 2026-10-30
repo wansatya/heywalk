@@ -20,7 +20,7 @@
   <a href="https://onnxruntime.ai/"><img alt="Gait: ONNX Runtime" src="https://img.shields.io/badge/gait-ONNX%20Runtime-005CED?style=flat-square"></a>
   <a href="https://ai.meta.com/"><img alt="AI: Meta Muse Spark" src="https://img.shields.io/badge/AI-Meta%20Muse%20Spark-0866FF?style=flat-square"></a>
   <a href="docker/runner.Dockerfile"><img alt="Runs: isolated Docker container" src="https://img.shields.io/badge/runs-isolated%20Docker-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
-  <a href="services/api/tests"><img alt="Backend tests: 391 passing" src="https://img.shields.io/badge/backend%20tests-391%20passing-2ea043?style=flat-square"></a>
+  <a href="services/api/tests"><img alt="Backend tests: 391 passing" src="https://img.shields.io/badge/backend%20tests-396%20passing-2ea043?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -296,7 +296,7 @@ A locomotion run is graded per phase, from recorded evidence:
 | `go_to` (default) | The trunk comes within `locomotion_goal_radius` (0.3 m) of the target, the robot never falls, no disqualifying contact occurs, and it settles into a balanced stand |
 | `kick` | The robot contacts the ball, keeps pushing for 1.5 s, and the ball actually moves ≥ 0.10 m |
 | `touch` | The robot contacts an arena wall, then stops |
-| `wander` | The robot survives the window without falling or touching anything |
+| `wander` | The robot roams with no window until it touches an arena wall; an obstacle contact or a fall fails it |
 
 `target` is an `[x, y]` point inside the arena, or `target_body` names a composed prop (`env_flag`, `env_ball`, `env_box_1`, `env_box_2`) that is resolved to its **live** position at run start — so arranging the scene moves the objective with it. Only the ball is a dynamic body (it has a free joint), which is what makes a kick measurable instead of declarative.
 

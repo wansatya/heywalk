@@ -14,10 +14,11 @@ import type { BodyPose, MicroduckEnvGeom, MicroduckModel, SimLayout } from '../.
 // offsets, and body poses all share that frame; only the floor, grid,
 // lights, and camera live in three's own frame.
 
-const BG_COLOR = 0x0b0c10
-const FLOOR_COLOR = 0x0e0f13
-const GRID_MINOR = 0x23262e
-const CRATE_EDGE = 0x2a1503
+const BG_COLOR = 0xf5f3ee
+const FLOOR_COLOR = 0xe8e5de
+const GRID_MINOR = 0x78716c
+const CRATE_EDGE = 0xfbbf24
+const WALL_COLOR = 0xc89228
 const FALLBACK_COLOR = 0xe8b339
 /** Arrange drag bounds (MuJoCo floor metres, matches the 4 m grid). */
 const LAYOUT_LIMIT = 2
@@ -294,7 +295,7 @@ export class MicroduckScene {
     // programmatic moves, so this persists the user's view, not ours.
     this.controls.addEventListener('end', this.persistCamera)
 
-    const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x14161c, 0.55)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xe8e5de, 0.7)
     this.scene.add(hemi)
     const key = new THREE.DirectionalLight(0xfff1de, 1.7)
     key.position.set(0.9, 1.5, 0.6)
@@ -311,7 +312,7 @@ export class MicroduckScene {
     rim.position.set(-0.7, 0.5, -0.9)
     this.scene.add(rim)
 
-    // Floor + faint minor grid; the orange major grid is gone (disturbing).
+    // Floor + minor grid with refined darker lines.
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(30, 30),
       new THREE.MeshStandardMaterial({ color: FLOOR_COLOR, roughness: 1 }),
@@ -322,7 +323,7 @@ export class MicroduckScene {
     const minor = new THREE.GridHelper(4, 20, GRID_MINOR, GRID_MINOR)
     minor.position.y = 0.001
     minor.material.transparent = true
-    minor.material.opacity = 0.55
+    minor.material.opacity = 0.75
     this.scene.add(minor)
 
     // MuJoCo frame: raw MuJoCo pos/quat apply verbatim inside it.
@@ -368,6 +369,12 @@ export class MicroduckScene {
         map: this.soccerTexture,
         roughness: 0.55,
         metalness: 0.0,
+      })
+    } else if (role === 'wall') {
+      material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(WALL_COLOR),
+        roughness: 0.8,
+        metalness: 0.05,
       })
     } else {
       material = new THREE.MeshStandardMaterial({

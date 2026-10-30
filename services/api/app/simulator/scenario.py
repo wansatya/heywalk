@@ -197,10 +197,11 @@ def _layout_coord(value: Any, name: str) -> float:
 #: Locomotion objective types. go_to: reach a point and stop (the flag by
 #: default, or a named prop via target_body). touch: make contact with an
 #: arena wall, then stop — wall touches are the aim, other contacts still
-#: fail. wander: keep moving without a destination until the window ends; the
-#: verdict is survival (no fall, no disqualifying contact) plus distance
-#: covered. kick: walk into the (dynamic) ball and push it away; the verdict
-#: is ball contact plus measured ball displacement.
+#: fail. wander: keep moving with no destination and no window until the
+#: arena wall ends the roam passing; an obstacle contact or a fall fails
+#: it instead, and distance covered is the evidence. kick: walk into the
+#: (dynamic) ball and push it away; the verdict is ball contact plus
+#: measured ball displacement.
 OBJECTIVE_TYPES: tuple[str, ...] = ("go_to", "touch", "wander", "kick")
 
 #: Objective target bodies are composed-prop names, never arbitrary model
@@ -294,8 +295,8 @@ def parse_objectives(data: Any) -> tuple[RunObjective, ...]:
     for phase in phases[:-1]:
         if phase.type == "wander":
             raise ScenarioError(
-                "wander completes only at the window end, so it must be"
-                " the last objective in the sequence."
+                "wander ends the run instead of advancing (wall, obstacle,"
+                " or fall), so it must be the last objective in the sequence."
             )
     return phases
 
@@ -537,8 +538,9 @@ class MujocoScenario:
                     )
             if phase.type == "wander" and index < len(self.phases) - 1:
                 raise ScenarioError(
-                    "wander completes only at the window end, so it must be"
-                    " the last objective in the sequence."
+                    "wander ends the run instead of advancing (wall,"
+                    " obstacle, or fall), so it must be the last objective"
+                    " in the sequence."
                 )
         if self.spawn_xy is not None:
             for value in self.spawn_xy:

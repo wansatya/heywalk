@@ -13,13 +13,14 @@ export function simToThree(x: number, y: number, out = new THREE.Vector3()): THR
 }
 
 export const MAX_TRAJECTORY_POINTS = 5000
-const BG_COLOR = 0x111318
-const FLOOR_COLOR = 0x1b1e24
-const WALL_COLOR = 0x2b303b
-const OBSTACLE_COLOR = 0x3a4150
-const EDGE_COLOR = 0x5b6478
-const TRAJECTORY_COLOR = 0xe8b339
-const GOAL_COLOR = 0x34d399
+const BG_COLOR = 0xf5f3ee
+const FLOOR_COLOR = 0xe8e5de
+const WALL_COLOR = 0xc89228
+const OBSTACLE_COLOR = 0xc0bab0
+const EDGE_COLOR = 0x9a9488
+const GRID_COLOR = 0x78716c
+const TRAJECTORY_COLOR = 0xd97706
+const GOAL_COLOR = 0x059669
 const START_COLOR = 0x7dd3fc
 /**
  * Idle showcase spin (OrbitControls units: 2.0 = one orbit per ~30 s).
@@ -72,7 +73,7 @@ export class WorldScene {
     this.controls.addEventListener('end', this.persistCamera)
 
     // Key + fill + ambient so the bot reads as a solid object.
-    const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x1a1d23, 0.55)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xe8e5de, 0.7)
     this.scene.add(hemi)
     const key = new THREE.DirectionalLight(0xfff2df, 1.6)
     key.castShadow = true
@@ -119,7 +120,7 @@ export class WorldScene {
     // Far ground (no void at any orbit angle) + arena floor + metre grid.
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(300, 300),
-      new THREE.MeshStandardMaterial({ color: 0x0c0d11, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: BG_COLOR, roughness: 1 }),
     )
     ground.rotation.x = -Math.PI / 2
     ground.position.set(cx, -0.02, cz)
@@ -139,7 +140,7 @@ export class WorldScene {
     gridGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(gridPoints), 3))
     const grid = new THREE.LineSegments(
       gridGeometry,
-      new THREE.LineBasicMaterial({ color: 0x232833, transparent: true, opacity: 0.8 }),
+      new THREE.LineBasicMaterial({ color: GRID_COLOR, transparent: true, opacity: 0.75 }),
     )
     this.staticGroup.add(ground, floor, grid)
 

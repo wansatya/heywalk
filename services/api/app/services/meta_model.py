@@ -325,10 +325,12 @@ How this robot is graded — two run modes, implement BOTH in one controller:
      and DO NOT stop at the 0.3 m radius — keep walking gently until
      contact, which passes the phase. Other contacts still fail.
    - wander: the task asks to roam/patrol with no destination. Ignore
-     /goal_pose; keep walking (steady forward speed, gentle turns to
-     stay inside the arena) until the window ends or the user stops
-     the run. The verdict is survival: no fall, no contact. Wander
-     completes only at the window end, so it MUST be the last phase.
+     /goal_pose; keep walking (steady forward speed, gentle turns)
+     with no window until the arena wall ends the roam passing.
+     Touching the wall passes the phase, but any obstacle contact
+     or a fall fails it — steer around the crates, the ball, and the
+     flag pole. Wander ends the run instead of advancing, so it MUST
+     be the last phase.
    Steering across phases: subscribe /objective_state (std_msgs/msg/String,
    the CURRENT phase type, published every tick) and switch behavior per
    phase — drive through kick/touch goals without stopping, stop inside
@@ -726,7 +728,7 @@ def _require_objectives(
         if objective.type == "wander":
             raise MetaModelResponseError(
                 "Model generation output placed wander before the last"
-                " phase; wander completes only at the window end, so it"
+                " phase; wander ends the run instead of advancing, so it"
                 " must be last."
             )
 

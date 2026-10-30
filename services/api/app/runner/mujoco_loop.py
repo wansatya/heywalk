@@ -347,8 +347,8 @@ def summarize_log_events(events: list[dict[str, Any]]) -> list[str]:
             if objective == "wander":
                 lines.append(
                     f"Locomotion {event.get('test')}: wander with no"
-                    " destination; the verdict is survival (no fall, no"
-                    " disqualifying contact)."
+                    " destination until the arena wall ends the roam;"
+                    " an obstacle contact or a fall fails it."
                 )
             elif objective == "kick":
                 lines.append(

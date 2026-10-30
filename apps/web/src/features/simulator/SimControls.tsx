@@ -1,4 +1,5 @@
-import { AlertOctagon, Pause, PauseCircle, Play, PlayCircle, Repeat, RotateCcw, Square, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertOctagon, Maximize, Minimize, Pause, PauseCircle, Play, PlayCircle, Repeat, RotateCcw, Square, X } from 'lucide-react'
 import { CONTROLLER_PATH, useWorkspaceStore } from '../../stores/workspace'
 import { useExperimentStore } from '../../stores/experiment'
 import { StatusPill } from '../../components/StatusPill'
@@ -7,12 +8,15 @@ import { clsx } from '../../components/clsx'
 import { isDefaultLayout, isTerminalStatus } from '../../api/types'
 import type { StreamConnectionState } from '../../api/stream'
 
+/** DOM id of the simulator panel (WorkspaceCenter); the fullscreen target. */
+export const SIMULATOR_PANEL_ID = 'simulator-panel'
+
 const STREAM_LABELS: Record<StreamConnectionState, { label: string; className: string }> = {
-  disconnected: { label: 'Stream idle', className: 'bg-slate-500' },
-  connecting: { label: 'Connecting…', className: 'bg-sky-400 animate-pulse' },
-  live: { label: 'Live', className: 'bg-emerald-400' },
-  reconnecting: { label: 'Reconnecting…', className: 'bg-amber-400 animate-pulse' },
-  closed: { label: 'Stream closed', className: 'bg-slate-500' },
+  disconnected: { label: 'Stream idle', className: 'bg-stone-400' },
+  connecting: { label: 'Connecting…', className: 'bg-sky-500 animate-pulse' },
+  live: { label: 'Live', className: 'bg-emerald-500' },
+  reconnecting: { label: 'Reconnecting…', className: 'bg-amber-500 animate-pulse' },
+  closed: { label: 'Stream closed', className: 'bg-stone-400' },
 }
 
 export function SimControls() {
@@ -42,6 +46,26 @@ export function SimControls() {
   const nextLayout = useExperimentStore((s) => s.nextLayout)
   const clearNextLayout = useExperimentStore((s) => s.clearNextLayout)
   const customLayout = !isDefaultLayout(nextLayout)
+
+  const [fsSupported] = useState(
+    () => typeof document !== 'undefined' && document.fullscreenEnabled === true,
+  )
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  useEffect(() => {
+    if (!fsSupported) return
+    const onChange = () => setIsFullscreen(document.fullscreenElement?.id === SIMULATOR_PANEL_ID)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [fsSupported])
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined)
+    } else {
+      const el = document.getElementById(SIMULATOR_PANEL_ID)
+      if (el) void el.requestFullscreen().catch(() => undefined)
+    }
+  }
 
   const live = runDetail !== null && !isTerminalStatus(runDetail.status)
   const finished = runDetail !== null && isTerminalStatus(runDetail.status)
@@ -84,7 +108,7 @@ export function SimControls() {
   }
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle/80 bg-elevated/90 px-3.5 py-2.5 backdrop-blur-sm">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle/80 bg-sidebar/90 px-3.5 py-2.5 backdrop-blur-sm">
       <ActionButton
         onClick={handleStart}
         disabled={!activeProjectId || !taskDefined || controllerMissing || busy || live}
@@ -158,7 +182,7 @@ export function SimControls() {
           type="button"
           onClick={() => clearNextLayout()}
           title="A custom scene layout applies to the next Start — click to reset to the composed defaults"
-          className="inline-flex items-center gap-1 rounded-lg border border-amber-400/50 bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/25 shadow-xs"
+          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 shadow-xs"
         >
           Layout*
           <X size={11} />
@@ -170,6 +194,13 @@ export function SimControls() {
         Reset view
       </ActionButton>
 
+      {fsSupported && (
+        <ActionButton onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Show the simulator fullscreen'}>
+          {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+          {isFullscreen ? 'Exit full' : 'Fullscreen'}
+        </ActionButton>
+      )}
+
       <button
         type="button"
         onClick={() => void latchEstop()}
@@ -178,8 +209,8 @@ export function SimControls() {
         className={clsx(
           'inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]',
           estopLatched
-            ? 'border-red-400 bg-red-500 text-white shadow-red-500/25 animate-pulse'
-            : 'border-red-500/40 bg-red-500/15 text-red-200 hover:bg-red-500/25',
+            ? 'border-red-500 bg-red-500 text-white shadow-red-500/25 animate-pulse'
+            : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100',
         )}
       >
         <AlertOctagon size={14} />
@@ -187,7 +218,7 @@ export function SimControls() {
       </button>
 
       <div className="ml-auto flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-400">
           <span className={clsx('h-1.5 w-1.5 rounded-full', stream.className)} />
           {stream.label}
         </span>
@@ -195,7 +226,7 @@ export function SimControls() {
       </div>
 
       {runActionError && (
-        <p className="w-full text-xs text-red-300" role="alert">
+        <p className="w-full text-xs text-red-600" role="alert">
           {runActionError}
         </p>
       )}

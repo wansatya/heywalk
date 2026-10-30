@@ -152,6 +152,21 @@ class EnvBody:
         }
 
 
+#: Arena and wall geometry (metres). The inner faces sit exactly on the
+#: arrange bounds. The +x/-x walls butt into the inner faces of the +y/-y
+#: walls, while the +y/-y walls run all the way to the outer corners. That
+#: gives exact 90° inner and outer corners with no protruding ends (the old
+#: overlapping boxes left excess at every corner) and no coplanar faces to
+#: z-fight in the 3D view.
+ARENA_HALF_EXTENT = 2.0
+WALL_HALF_THICKNESS = 0.05
+WALL_HALF_HEIGHT = 0.15
+WALL_CENTER = ARENA_HALF_EXTENT + WALL_HALF_THICKNESS
+#: The +y/-y walls span to the outer corner (centre + half thickness).
+WALL_HALF_LENGTH = ARENA_HALF_EXTENT + 2 * WALL_HALF_THICKNESS
+#: Dark yellow / golden ochre wall color matching the arena barriers.
+WALL_RGBA: tuple[float, float, float, float] = (0.78, 0.57, 0.16, 1.0)
+
 #: Simulator environment composed around the duck: two obstacle crates, a
 #: ball, a goal flag, and four arena walls. Crates, the flag and the walls are
 #: STATIC (no joints): they take no qpos slots, so the official STAND/INIT
@@ -234,55 +249,56 @@ ENVIRONMENT: tuple[EnvBody, ...] = (
         ),
     ),
     # Arena walls: inner faces exactly on the ±2 m arrange bounds, 0.3 m
-    # tall, 0.1 m thick. Long sides overlap the corners so no gap remains.
+    # tall, 0.1 m thick. The x walls butt into the y walls; the y walls span
+    # the corners, so every corner is a clean 90° joint with no excess.
     EnvBody(
         name="env_wall_px",
-        pos=(2.05, 0.0, 0.15),
+        pos=(WALL_CENTER, 0.0, WALL_HALF_HEIGHT),
         geoms=(
             EnvGeom(
                 name="env_wall_px_geom",
                 type="box",
-                size=(0.05, 2.2, 0.15),
-                rgba=(0.16, 0.18, 0.23, 1.0),
+                size=(WALL_HALF_THICKNESS, ARENA_HALF_EXTENT, WALL_HALF_HEIGHT),
+                rgba=WALL_RGBA,
                 role="wall",
             ),
         ),
     ),
     EnvBody(
         name="env_wall_nx",
-        pos=(-2.05, 0.0, 0.15),
+        pos=(-WALL_CENTER, 0.0, WALL_HALF_HEIGHT),
         geoms=(
             EnvGeom(
                 name="env_wall_nx_geom",
                 type="box",
-                size=(0.05, 2.2, 0.15),
-                rgba=(0.16, 0.18, 0.23, 1.0),
+                size=(WALL_HALF_THICKNESS, ARENA_HALF_EXTENT, WALL_HALF_HEIGHT),
+                rgba=WALL_RGBA,
                 role="wall",
             ),
         ),
     ),
     EnvBody(
         name="env_wall_py",
-        pos=(0.0, 2.05, 0.15),
+        pos=(0.0, WALL_CENTER, WALL_HALF_HEIGHT),
         geoms=(
             EnvGeom(
                 name="env_wall_py_geom",
                 type="box",
-                size=(2.2, 0.05, 0.15),
-                rgba=(0.16, 0.18, 0.23, 1.0),
+                size=(WALL_HALF_LENGTH, WALL_HALF_THICKNESS, WALL_HALF_HEIGHT),
+                rgba=WALL_RGBA,
                 role="wall",
             ),
         ),
     ),
     EnvBody(
         name="env_wall_ny",
-        pos=(0.0, -2.05, 0.15),
+        pos=(0.0, -WALL_CENTER, WALL_HALF_HEIGHT),
         geoms=(
             EnvGeom(
                 name="env_wall_ny_geom",
                 type="box",
-                size=(2.2, 0.05, 0.15),
-                rgba=(0.16, 0.18, 0.23, 1.0),
+                size=(WALL_HALF_LENGTH, WALL_HALF_THICKNESS, WALL_HALF_HEIGHT),
+                rgba=WALL_RGBA,
                 role="wall",
             ),
         ),

@@ -3,12 +3,12 @@
 @theme {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --color-base: #0d0f14;
-  --color-sidebar: #090a0d;
-  --color-elevated: #14171f;
-  --color-elevated-hover: #1a1e28;
-  --color-border-subtle: #242935;
-  --color-border-hover: #373f52;
+  --color-base: #faf9f5;
+  --color-sidebar: #f1efe9;
+  --color-elevated: #ffffff;
+  --color-elevated-hover: #f7f5f0;
+  --color-border-subtle: #e5e2dc;
+  --color-border-hover: #d5d0c8;
 }
 
 html,
@@ -19,7 +19,7 @@ body,
 
 body {
   background: var(--color-base);
-  color: #f1f5f9;
+  color: #2d2b29;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -33,17 +33,79 @@ samp {
   font-family: var(--font-mono);
 }
 
-/* Slim dark scrollbars */
+/* KITT-style scanner for the run-phase overlay (blue): five dots on one
+   track strung into a comet via negative animation delays. The most
+   negative delay is furthest ahead in phase, so the LAST child leads the
+   sweep and brightness fades toward the first child; the tail follows the
+   direction of travel both ways. The 4rem sweep matches a w-20 track with
+   w-4 dots; overflow-hidden contains any drift. Static when the user
+   prefers reduced motion. */
+.kitt-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1rem;
+  height: 100%;
+  border-radius: 9999px;
+  background: #d97706;
+  box-shadow: 0 0 8px 2px rgba(217, 119, 6, 0.5);
+}
+.kitt-dot:nth-child(1) {
+  opacity: 0.12;
+}
+.kitt-dot:nth-child(2) {
+  opacity: 0.22;
+}
+.kitt-dot:nth-child(3) {
+  opacity: 0.35;
+}
+.kitt-dot:nth-child(4) {
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kitt-dot {
+    animation: kitt-scan 1.4s ease-in-out infinite;
+  }
+  .kitt-dot:nth-child(2) {
+    animation-delay: -0.1s;
+  }
+  .kitt-dot:nth-child(3) {
+    animation-delay: -0.2s;
+  }
+  .kitt-dot:nth-child(4) {
+    animation-delay: -0.3s;
+  }
+  .kitt-dot:nth-child(5) {
+    animation-delay: -0.4s;
+  }
+}
+@keyframes kitt-scan {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4rem);
+  }
+}
+
+/* The simulator panel in fullscreen: fill the screen edge to edge. */
+#simulator-panel:fullscreen {
+  border-radius: 0;
+  border: 0;
+}
+
+/* Slim light scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #4d5566 transparent;
+  scrollbar-color: #c4c0b8 transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #4d5566;
+  background: #c4c0b8;
   border-radius: 8px;
 }
 *::-webkit-scrollbar-track {

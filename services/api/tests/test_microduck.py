@@ -201,12 +201,18 @@ def test_composed_scene_walls_bound_the_arena():
         size = [float(v) for v in geom.get("size", "").split()]
         if name.endswith("_px"):
             assert pos[0] - size[0] == pytest.approx(2.0)
+            # Butt into the y wall's inner face: no overlap or excess.
+            assert size[1] == pytest.approx(2.0)
         elif name.endswith("_nx"):
             assert pos[0] + size[0] == pytest.approx(-2.0)
+            assert size[1] == pytest.approx(2.0)
         elif name.endswith("_py"):
             assert pos[1] - size[1] == pytest.approx(2.0)
+            # Span the corner out to the perpendicular wall's outer face.
+            assert size[0] == pytest.approx(2.0 + 2 * size[1])
         elif name.endswith("_ny"):
             assert pos[1] + size[1] == pytest.approx(-2.0)
+            assert size[0] == pytest.approx(2.0 + 2 * size[1])
 
 
 def test_composed_scene_carries_the_simulator_environment():

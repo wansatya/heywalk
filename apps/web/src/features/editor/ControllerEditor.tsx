@@ -33,14 +33,14 @@ function PlainTextFallback({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <p className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-200">
+      <p className="shrink-0 border-b border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-medium text-amber-900">
         Code editor failed to load (offline?). Plain-text editing is available instead.
       </p>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
-        className="min-h-0 flex-1 resize-none bg-base p-3.5 font-mono text-xs leading-relaxed text-slate-100 outline-none"
+        className="min-h-0 flex-1 resize-none bg-base p-3.5 font-mono text-xs leading-relaxed text-stone-800 outline-none"
       />
     </div>
   )
@@ -149,12 +149,12 @@ export function ControllerEditor() {
     >
       <div className="flex h-full flex-col">
         {editorDirty && (
-          <p className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-3.5 py-1.5 text-xs font-medium text-amber-300">
+          <p className="shrink-0 border-b border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-medium text-amber-900">
             Unsaved changes — Start and Rerun save them first, so runs always use this version.
           </p>
         )}
         {isController && editorBlank && filesState !== 'loading' && (
-          <p className="shrink-0 border-b border-sky-500/20 bg-sky-500/10 px-3.5 py-1.5 text-xs font-medium text-sky-200">
+          <p className="shrink-0 border-b border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-medium text-sky-900">
             controller.py is empty — import the walk-to-flag sample above, or describe a new
             objective in Task and press Generate.
           </p>
@@ -185,8 +185,8 @@ export function ControllerEditor() {
 
         <div className="min-h-[220px] flex-1">
           {files.length === 0 && filesState !== 'loading' ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2.5 p-6 text-center text-xs text-slate-400">
-              <Sparkles size={20} className="text-amber-400/70" />
+            <div className="flex h-full flex-col items-center justify-center gap-2.5 p-6 text-center text-xs text-stone-500">
+              <Sparkles size={20} className="text-amber-600" />
               <p>
                 No file open. Pick one in the explorer, or describe the task on the right and
                 press Generate.
@@ -199,7 +199,7 @@ export function ControllerEditor() {
                   <MonacoDiffEditor
                     height="100%"
                     language="python"
-                    theme="vs-dark"
+                    theme="vs"
                     original={diffBase.content}
                     modified={editorContent}
                     onMount={(editor) => {
@@ -226,7 +226,7 @@ export function ControllerEditor() {
                   <MonacoEditor
                     height="100%"
                     language="python"
-                    theme="vs-dark"
+                    theme="vs"
                     path={activeFilePath || 'controller.py'}
                     value={editorContent}
                     onChange={(value) => editContent(value ?? '')}
@@ -248,11 +248,11 @@ export function ControllerEditor() {
           )}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-border-subtle/80 bg-sidebar/40 px-3.5 py-2 text-xs text-slate-400">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-border-subtle/80 bg-sidebar/50 px-3.5 py-2 text-xs text-stone-500">
           <span>
             {activeFilePath ? (
               <>
-                <span className="font-mono text-slate-300">{activeFilePath}</span>
+                <span className="font-mono text-stone-800 font-medium">{activeFilePath}</span>
                 {editorVersion !== null && ` · v${editorVersion}`}
                 {editorDirty ? ' · unsaved' : saveState.status === 'success' ? ' · saved' : ''}
                 {showDiff ? ' · green added, red removed by AI' : ''}
@@ -261,7 +261,7 @@ export function ControllerEditor() {
               'No file open'
             )}
           </span>
-          {runFailed && <span className="text-red-300">Last run failed — diagnostics are on the right.</span>}
+          {runFailed && <span className="text-red-700 font-medium">Last run failed — diagnostics are on the right.</span>}
         </div>
       </div>
     </Panel>

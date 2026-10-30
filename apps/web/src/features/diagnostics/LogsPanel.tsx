@@ -33,14 +33,14 @@ export function LogsBody({ autoScroll }: { autoScroll: boolean }) {
   return (
     <div className="bg-base p-3.5 space-y-0.5 font-mono text-xs leading-relaxed">
       {logs.length === 0 && (
-        <div className="flex items-center gap-2.5 p-4 text-xs text-slate-500">
+        <div className="flex items-center gap-2.5 p-4 text-xs text-stone-400">
           <Terminal size={15} />
           <span>{activeRunId ? 'No log lines yet for this run.' : 'Select or start a run to see logs.'}</span>
         </div>
       )}
       {logs.map((line, i) => (
         // Log lines are untrusted execution output; React escapes them by default.
-        <p key={i} className="whitespace-pre-wrap break-words text-slate-300 hover:bg-white/[0.03] px-1 rounded transition-colors">
+        <p key={i} className="whitespace-pre-wrap break-words text-stone-600 hover:bg-stone-100/60 px-1 rounded transition-colors">
           {prettyLine(line)}
         </p>
       ))}

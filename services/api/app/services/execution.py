@@ -133,8 +133,8 @@ def _microduck_goal_geoms(
     """Goal-geom names for a MicroDuck locomotion run (else []).
 
     The flag is always the aim-or-marker, never an obstacle. Any touch
-    phase adds the arena walls and any kick phase adds the ball:
-    contacting them is an objective, so they must not count as
+    or wander phase adds the arena walls and any kick phase adds the
+    ball: contacting them is an objective, so they must not count as
     disqualifying collisions.
     """
     from ..simulator.microduck import is_composed_scene
@@ -161,7 +161,7 @@ def _microduck_goal_geoms(
                 content
             ):
                 geoms = list(flag_geom_names())
-                if "touch" in kinds:
+                if "touch" in kinds or "wander" in kinds:
                     geoms.extend(wall_geom_names())
                 if "kick" in kinds:
                     geoms.extend(ball_geom_names())

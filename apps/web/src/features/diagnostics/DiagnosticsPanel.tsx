@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Bot, CheckCircle2, FlaskConical, Gauge, RotateCcw, Wrench, XCircle } from 'lucide-react'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useExperimentStore } from '../../stores/experiment'
@@ -6,22 +5,9 @@ import { ActionButton, Panel, LoadingRow } from '../../components/Panel'
 import { DiffView } from '../../components/DiffView'
 import { TraceView } from '../../components/TraceView'
 import { clsx } from '../../components/clsx'
+import { useElapsedSeconds } from '../../components/useElapsedSeconds'
 import { RobotSummary } from './RobotSummary'
 import { BACKEND_LABELS, hasEvaluatorSuccess, isTerminalStatus, isUnverifiedSuccess, testPassRate, type Run, type TestResult } from '../../api/types'
-
-function useElapsedSeconds(active: boolean): number {
-  const [elapsed, setElapsed] = useState(0)
-  useEffect(() => {
-    if (!active) {
-      setElapsed(0)
-      return
-    }
-    const started = Date.now()
-    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 500)
-    return () => window.clearInterval(timer)
-  }, [active])
-  return elapsed
-}
 
 interface PlainSummary {
   headline: string
@@ -106,7 +92,7 @@ function plainSummary(run: Run): PlainSummary | null {
 
 function SectionLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+    <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
       {icon}
       {text}
     </p>
@@ -127,8 +113,9 @@ export function DiagnosticsPanel() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId)
   const modelRequests = useWorkspaceStore((s) => s.modelRequests)
   const robotInstall = useWorkspaceStore((s) => s.robotInstall)
-  const modelBusy = generation.status === 'loading' || fix.status === 'loading'
-  const modelElapsed = useElapsedSeconds(modelBusy)
+  const fixing = fix.status === 'loading'
+  const generating = generation.status === 'loading'
+  const modelElapsed = useElapsedSeconds(fixing)
   const lastRequest = modelRequests[0] ?? null
 
   const activeRunId = useExperimentStore((s) => s.activeRunId)
@@ -142,8 +129,13 @@ export function DiagnosticsPanel() {
   const unverified = runDetail !== null && isUnverifiedSuccess(runDetail)
   const passRate = runDetail !== null ? testPassRate(runDetail) : null
   const runFinished = runDetail !== null && isTerminalStatus(runDetail.status)
-  const fixing = fix.status === 'loading'
-  const generating = generation.status === 'loading'
+  // Generation progress lives in the Task card; Diagnostics only shows the
+  // reasoning once there is a result (or a fix/last-request row to display).
+  const modelSectionVisible =
+    fix.status !== 'idle' ||
+    generation.status === 'success' ||
+    generation.status === 'error' ||
+    (lastRequest !== null && generation.status === 'idle' && fix.status === 'idle')
 
   return (
     <Panel
@@ -170,7 +162,7 @@ export function DiagnosticsPanel() {
         {detailLoading && <LoadingRow label="Loading run details…" />}
 
         {!runDetail && !detailLoading && (
-          <p className="text-slate-400">No run selected. Start a simulation to collect evidence here.</p>
+          <p className="text-stone-400">No run selected. Start a simulation to collect evidence here.</p>
         )}
 
         {runDetail && (() => {
@@ -179,38 +171,38 @@ export function DiagnosticsPanel() {
             <div
               className={clsx(
                 'rounded-lg border p-2.5 shadow-xs',
-                summary.tone === 'ok' && 'border-emerald-500/30 bg-emerald-500/10',
-                summary.tone === 'bad' && 'border-red-500/30 bg-red-500/10',
-                summary.tone === 'neutral' && 'border-border-subtle/60 bg-white/[0.02]',
+                summary.tone === 'ok' && 'border-emerald-200 bg-emerald-50',
+                summary.tone === 'bad' && 'border-red-200 bg-red-50',
+                summary.tone === 'neutral' && 'border-border-subtle/60 bg-stone-50',
               )}
             >
               <p
                 className={clsx(
                   'text-sm font-semibold leading-snug',
-                  summary.tone === 'ok' && 'text-emerald-200',
-                  summary.tone === 'bad' && 'text-red-200',
-                  summary.tone === 'neutral' && 'text-slate-200',
+                  summary.tone === 'ok' && 'text-emerald-700',
+                  summary.tone === 'bad' && 'text-red-700',
+                  summary.tone === 'neutral' && 'text-stone-700',
                 )}
               >
                 {summary.headline}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">{summary.detail}</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">{summary.hint}</p>
+              <p className="mt-1 text-xs leading-relaxed text-stone-600">{summary.detail}</p>
+              <p className="mt-1 text-xs leading-relaxed text-stone-400">{summary.hint}</p>
             </div>
           ) : null
         })()}
 
         {runDetail && (
           <div>
-            <SectionLabel icon={<Gauge size={13} className="text-sky-400" />} text="Evaluator conclusions" />
+            <SectionLabel icon={<Gauge size={13} className="text-sky-600" />} text="Evaluator conclusions" />
             {!evaluated && (
-              <p className="text-slate-400 leading-relaxed">
+              <p className="text-stone-400 leading-relaxed">
                 Awaiting evaluation — the run has not produced evaluator evidence yet. Nothing here
                 counts as success until it does.
               </p>
             )}
             {unverified && (
-              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-amber-200 leading-relaxed">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-amber-700 leading-relaxed">
                 The backend reports success but attached no evaluator evidence. Treating this run as
                 unverified — not a success.
               </p>
@@ -221,21 +213,21 @@ export function DiagnosticsPanel() {
                   className={clsx(
                     'flex items-center gap-2 rounded-lg border p-2.5 font-semibold text-xs shadow-xs',
                     success
-                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                      : 'border-red-500/30 bg-red-500/10 text-red-300',
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-red-200 bg-red-50 text-red-700',
                   )}
                 >
-                  {success ? <CheckCircle2 size={15} className="text-emerald-400 shrink-0" /> : <XCircle size={15} className="text-red-400 shrink-0" />}
+                  {success ? <CheckCircle2 size={15} className="text-emerald-500 shrink-0" /> : <XCircle size={15} className="text-red-500 shrink-0" />}
                   <span>{success ? 'Evaluator: task succeeded' : 'Evaluator: task did not succeed'}</span>
                 </div>
                 {(runDetail.evaluation?.reasons ?? []).map((reason, i) => (
-                  <p key={i} className="text-slate-300 leading-relaxed">• {reason}</p>
+                  <p key={i} className="text-stone-600 leading-relaxed">• {reason}</p>
                 ))}
                 {runDetail.failure_summary && (
-                  <p className="text-slate-300 leading-relaxed">• {runDetail.failure_summary}</p>
+                  <p className="text-stone-600 leading-relaxed">• {runDetail.failure_summary}</p>
                 )}
                 {runDetail.metrics && (
-                  <p className="font-mono text-xs text-slate-400">
+                  <p className="font-mono text-xs text-stone-400">
                     evaluator {runDetail.metrics.evaluator_version} · collisions{' '}
                     {runDetail.metrics.collision_count} · goal Δ{' '}
                     {runDetail.metrics.goal_distance.toFixed(2)} m
@@ -243,14 +235,14 @@ export function DiagnosticsPanel() {
                 )}
                 {passRate && passRate.total > 0 && (
                   <div className="space-y-1">
-                    <p className="font-mono text-xs text-slate-400">
+                    <p className="font-mono text-xs text-stone-400">
                       automated tests {passRate.passed}/{passRate.total} passed · max joint error{' '}
                       {runDetail.metrics?.max_joint_error.toFixed(3) ?? '—'}
                     </p>
                     {runDetail.tests
                       .filter((test) => !test.passed)
                       .map((test) => (
-                        <p key={test.id} className="text-xs text-red-300">
+                        <p key={test.id} className="text-xs text-red-600">
                           ✕ {test.joint ?? test.id}: {test.reason || `final error ${test.final_error.toFixed(3)}`}
                         </p>
                       ))}
@@ -263,10 +255,10 @@ export function DiagnosticsPanel() {
 
         {runDetail && (
           <div>
-            <SectionLabel icon={<FlaskConical size={13} className="text-amber-400" />} text="Execution events" />
-            <div className="space-y-1 rounded-lg border border-border-subtle/60 bg-white/[0.02] p-2.5 font-mono text-xs text-slate-300">
+            <SectionLabel icon={<FlaskConical size={13} className="text-amber-500" />} text="Execution events" />
+            <div className="space-y-1 rounded-lg border border-border-subtle/60 bg-stone-50 p-2.5 font-mono text-xs text-stone-600">
               <p>run {runDetail.id.slice(0, 8)} · controller v{runDetail.controller_version} · seed {runDetail.seed}</p>
-              <p className="text-slate-400">
+              <p className="text-stone-400">
                 backend {BACKEND_LABELS[runDetail.backend] ?? runDetail.backend} · status {runDetail.status}
                 {runDetail.exit_code !== null && ` · exit ${runDetail.exit_code}`}
               </p>
@@ -274,31 +266,28 @@ export function DiagnosticsPanel() {
           </div>
         )}
 
-        {(generation.status !== 'idle' || fix.status !== 'idle' || lastRequest) && (
+        {modelSectionVisible && (
           <div>
-            <SectionLabel icon={<Bot size={13} className="text-purple-400" />} text="Model reasoning" />
-            {generation.status === 'loading' && (
-              <LoadingRow label={`Muse Spark is generating… ${modelElapsed}s`} />
-            )}
+            <SectionLabel icon={<Bot size={13} className="text-purple-500" />} text="Model reasoning" />
             {fix.status === 'loading' && (
               <LoadingRow label={`Muse Spark is diagnosing… ${modelElapsed}s`} />
             )}
             {generation.status === 'error' && generation.error && (
               <div className="space-y-2">
-                <p className="text-red-200">Generation failed: {generation.error}</p>
+                <p className="text-red-600">Generation failed: {generation.error}</p>
                 <TraceView trace={generationTrace} hint={generationHint} />
               </div>
             )}
             {generation.data && fix.status === 'idle' && (
-              <div className="space-y-2 text-slate-300 leading-relaxed">
-                <p className="font-semibold text-slate-100">{generation.data.summary}</p>
+              <div className="space-y-2 text-stone-600 leading-relaxed">
+                <p className="font-semibold text-stone-800">{generation.data.summary}</p>
                 <p>
-                  <span className="text-slate-400 font-medium">Expected: </span>
+                  <span className="text-stone-500 font-medium">Expected: </span>
                   {generation.data.expected_behavior}
                 </p>
                 {generation.data.assumptions.length > 0 && (
                   <p>
-                    <span className="text-slate-400 font-medium">Assumes: </span>
+                    <span className="text-stone-500 font-medium">Assumes: </span>
                     {generation.data.assumptions.join('; ')}
                   </p>
                 )}
@@ -321,12 +310,12 @@ export function DiagnosticsPanel() {
             )}
             {fix.status === 'error' && fix.error && (
               <div className="space-y-2">
-                <p className="text-red-200">Diagnosis failed: {fix.error}</p>
+                <p className="text-red-600">Diagnosis failed: {fix.error}</p>
                 <TraceView trace={fixTrace} hint={fixHint} />
               </div>
             )}
             {lastRequest && generation.status === 'idle' && fix.status === 'idle' && (
-              <p className="font-mono text-xs text-slate-500">
+              <p className="font-mono text-xs text-stone-400">
                 Last request: {lastRequest.purpose} · {lastRequest.model_name} ·{' '}
                 {lastRequest.latency_ms != null ? `${(lastRequest.latency_ms / 1000).toFixed(1)}s` : '—'} ·{' '}
                 {lastRequest.prompt_version} · {lastRequest.status}
@@ -334,20 +323,20 @@ export function DiagnosticsPanel() {
               </p>
             )}
             {fix.data && (
-              <div className="space-y-2.5 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3.5 shadow-xs">
-                <p className="font-semibold text-sky-200 leading-snug">{fix.data.failure_hypothesis}</p>
+              <div className="space-y-2.5 rounded-xl border border-sky-200 bg-sky-50 p-3.5 shadow-xs">
+                <p className="font-semibold text-sky-700 leading-snug">{fix.data.failure_hypothesis}</p>
                 {fix.data.evidence.map((e, i) => (
-                  <p key={i} className="text-slate-300 leading-relaxed">• {e}</p>
+                  <p key={i} className="text-stone-600 leading-relaxed">• {e}</p>
                 ))}
                 <p>
-                  <span className="text-slate-400 font-medium">Proposed change: </span>
-                  <span className="text-slate-200">{fix.data.proposed_change}</span>
+                  <span className="text-stone-500 font-medium">Proposed change: </span>
+                  <span className="text-stone-700">{fix.data.proposed_change}</span>
                 </p>
                 <p>
-                  <span className="text-slate-400 font-medium">Expected improvement: </span>
-                  <span className="text-slate-200">{fix.data.expected_improvement}</span>
+                  <span className="text-stone-500 font-medium">Expected improvement: </span>
+                  <span className="text-stone-700">{fix.data.expected_improvement}</span>
                 </p>
-                <p className="font-mono text-xs text-slate-400">
+                <p className="font-mono text-xs text-stone-400">
                   Applied to: {fix.data.updated_files.map((f) => f.path).join(', ') || '—'}
                   {' '}(editor already shows the corrected code)
                 </p>
@@ -367,7 +356,7 @@ export function DiagnosticsPanel() {
                     type="button"
                     onClick={() => fixRunId && void rerunRun(fixRunId, activeProjectId ?? undefined)}
                     disabled={!fixRunId || runAction === 'rerunning'}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-400 px-3 py-1.5 text-xs font-bold text-slate-950 shadow-sm transition-all hover:bg-sky-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-sky-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     title="Rerun the same scenario (world + seed) with the corrected controller"
                   >
                     <RotateCcw size={13} />
@@ -376,7 +365,7 @@ export function DiagnosticsPanel() {
                   <button
                     type="button"
                     onClick={dismissFix}
-                    className="rounded-lg border border-border-subtle bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 transition-all hover:bg-white/[0.08] active:scale-[0.98]"
+                    className="rounded-lg border border-border-subtle bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition-all hover:bg-stone-50 active:scale-[0.98]"
                   >
                     Dismiss
                   </button>

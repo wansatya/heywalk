@@ -531,7 +531,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           // Server-side and atomic: writes the sample and resets the
           // project to default (flag) grading in one step.
           const saved = await importSampleController(activeProjectId, DEFAULT_ROBOT_ID)
-          set({ objectives: [] })
+          // The sample is the walk-to-flag behavior, so the backend also
+          // writes its matching task. Read it back so Start is enabled on a
+          // fresh sequence whose task was empty before the import.
+          let taskDraft = get().taskDraft
+          try {
+            const project = await getProject(activeProjectId)
+            taskDraft = project.task_description ?? ''
+          } catch {
+            // The sample was written; a metadata read failure must not undo it.
+          }
+          set({ taskDraft, objectives: [], diffBase: null })
           await get().refreshFiles()
           await get().openFile(saved.path)
           set({ sampleState: { status: 'success', error: null, data: null } })

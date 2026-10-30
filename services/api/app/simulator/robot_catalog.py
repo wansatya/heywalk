@@ -392,6 +392,8 @@ class StarterRobot:
     source_url: str
     mjcf: str
     controller: str = REFERENCE_CONTROLLER
+    #: Task text that matches the sample controller (empty = leave it alone).
+    sample_task: str = ""
 
     def files(self) -> dict[str, str]:
         """Model-authored files (companions are synthesized on validation)."""
@@ -416,6 +418,7 @@ STARTER_ROBOTS: tuple[StarterRobot, ...] = (
         source_url=MICRODUCK_SOURCE_URL,
         mjcf=_official_microduck_mjcf(),
         controller=MICRODUCK_REFERENCE_CONTROLLER,
+        sample_task="Walk to the green flag then stop safely.",
     ),
     StarterRobot(
         id="arm",

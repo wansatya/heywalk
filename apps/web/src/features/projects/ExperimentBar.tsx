@@ -80,7 +80,7 @@ export function ExperimentBar() {
             onChange={(e) => void handleSelectProject(e.target.value)}
             disabled={projects.length === 0}
             aria-label="Active sequence"
-            className="min-w-0 flex-1 rounded-lg border border-border-subtle bg-base px-3 py-1.5 text-xs font-medium text-slate-100 outline-none transition-all focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/20 disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-lg border border-border-subtle bg-base px-3 py-1.5 text-xs font-medium text-stone-800 outline-none transition-all focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 disabled:opacity-50"
           >
             {projects.length === 0 && <option value="">No sequences yet</option>}
             {projects.map((p) => (

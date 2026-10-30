@@ -1112,6 +1112,9 @@ def test_import_sample_controller_clears_a_declared_objective(tmp_path):
     assert saved["path"] == "controller.py"
     assert "starter" in saved["content"].lower()
     assert store.get_project_objectives(project["id"]) is None
+    assert store.get_project(project["id"])["task_description"] == (
+        "Walk to the green flag then stop safely."
+    )
 
 
 def test_start_run_grades_the_project_objective_without_an_override(tmp_path):

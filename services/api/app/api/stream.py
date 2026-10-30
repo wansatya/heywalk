@@ -16,6 +16,7 @@ stored in ``run_telemetry``: the client loads full history through
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from typing import Any
 
@@ -24,6 +25,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from ..services.execution import ExecutionManager, is_terminal
 
 router = APIRouter(tags=["stream"])
+
+logger = logging.getLogger("heywalk.stream")
 
 TELEMETRY_MIN_INTERVAL_S = 0.05  # ~20/s
 
@@ -142,3 +145,13 @@ async def stream_run(websocket: WebSocket, run_id: str) -> None:
             manager.bus.unsubscribe(run_id, queue)
     except WebSocketDisconnect:
         return
+    except Exception:
+        # A failed replay or send must be visible in the API logs:
+        # otherwise the client just sees repeated closes and reports an
+        # undiagnosable "disconnected after retries". Cancellation (server
+        # shutdown) is a BaseException and still propagates past this.
+        logger.exception("run stream failed for %s", run_id)
+        try:
+            await websocket.close(code=1011)
+        except Exception:
+            pass

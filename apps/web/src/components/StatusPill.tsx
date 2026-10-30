@@ -2,15 +2,15 @@ import { clsx } from './clsx'
 import type { RunStatus } from '../api/types'
 
 const STATUS_STYLES: Record<RunStatus, string> = {
-  queued: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  preparing: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  running: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  evaluating: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  succeeded: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  failed: 'bg-red-500/15 text-red-300 border-red-500/30',
-  timeout: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
-  cancelled: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
-  error: 'bg-red-500/15 text-red-300 border-red-500/30',
+  queued: 'bg-stone-100 text-stone-600 border-stone-200',
+  preparing: 'bg-sky-50 text-sky-700 border-sky-200',
+  running: 'bg-amber-50 text-amber-700 border-amber-200',
+  evaluating: 'bg-sky-50 text-sky-700 border-sky-200',
+  succeeded: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  failed: 'bg-red-50 text-red-700 border-red-200',
+  timeout: 'bg-orange-50 text-orange-700 border-orange-200',
+  cancelled: 'bg-stone-100 text-stone-500 border-stone-200',
+  error: 'bg-red-50 text-red-700 border-red-200',
 }
 
 const STATUS_LABELS: Record<RunStatus, string> = {

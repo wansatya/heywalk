@@ -53,20 +53,20 @@ function FileRow({ node, depth }: { node: TreeNode; depth: number }) {
       className={clsx(
         'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono text-xs transition-colors',
         active
-          ? 'bg-amber-400/15 text-amber-200 font-medium shadow-xs'
-          : 'text-slate-300 hover:bg-white/[0.05] hover:text-white',
+          ? 'bg-amber-100 text-amber-800 font-medium shadow-xs'
+          : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900',
       )}
       style={{ paddingLeft: `${depth * 14 + 8}px` }}
     >
-      <FileCode2 size={13} className={clsx('shrink-0', active ? 'text-amber-300' : 'text-slate-500 group-hover:text-slate-400')} />
+      <FileCode2 size={13} className={clsx('shrink-0', active ? 'text-amber-600' : 'text-stone-400 group-hover:text-stone-500')} />
       <span className="min-w-0 flex-1 truncate">{node.name}</span>
       {active && editorDirty && (
-        <span className="text-[10px] text-amber-300" title="Unsaved changes">
+        <span className="text-[10px] text-amber-600" title="Unsaved changes">
           ●
         </span>
       )}
       {node.version !== undefined && (
-        <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-mono text-slate-400 group-hover:text-slate-300">
+        <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-400 group-hover:text-stone-500">
           v{node.version}
         </span>
       )}
@@ -90,11 +90,11 @@ function DirRow({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-200"
+        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
       >
-        {open ? <ChevronDown size={13} className="text-slate-500" /> : <ChevronRight size={13} className="text-slate-500" />}
-        {open ? <FolderOpen size={13} className="text-amber-300/80" /> : <Folder size={13} className="text-amber-300/80" />}
+        {open ? <ChevronDown size={13} className="text-stone-400" /> : <ChevronRight size={13} className="text-stone-400" />}
+        {open ? <FolderOpen size={13} className="text-amber-500" /> : <Folder size={13} className="text-amber-500" />}
         <span className="truncate">{node.name}</span>
       </button>
       {open &&
@@ -141,7 +141,7 @@ export function FileExplorer() {
       }
     >
       <div className="space-y-0.5 p-2">
-        {!activeProjectId && <p className="p-2.5 text-xs text-slate-500">Create a sequence to see its files.</p>}
+        {!activeProjectId && <p className="p-2.5 text-xs text-stone-400">Create a sequence to see its files.</p>}
         {activeProjectId && filesState === 'loading' && files.length === 0 && !installing && (
           <LoadingRow label="Loading files…" />
         )}

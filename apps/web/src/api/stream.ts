@@ -26,6 +26,19 @@ export interface StreamHandlers {
 
 const MAX_ATTEMPTS = 6
 const BASE_DELAY_MS = 500
+/** Server-side close code for "unknown run" (see app/api/stream.py). */
+const CLOSE_UNKNOWN_RUN = 4404
+
+/** Human hint for the close code that killed the stream. */
+function describeClose(code: number | null, connectedOnce: boolean): string {
+  if (code === 1006 && !connectedOnce) {
+    return ' (the connection never opened — something between the browser and the server may block the WebSocket handshake)'
+  }
+  if (code === 1006) return ' (the connection dropped mid-run)'
+  if (code === 1011) return ' (the server closed the stream with an error — check the API logs)'
+  if (code !== null) return ` (last close: ${code})`
+  return ''
+}
 
 function parseEvent(data: unknown): StreamEvent | null {
   if (typeof data !== 'object' || data === null) return null
@@ -56,6 +69,8 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
   let closed = false
   let reconnectTimer = 0
   let lastStatus: RunStatus | null = null
+  let lastCloseCode: number | null = null
+  let connectedOnce = false
 
   const setState = (state: StreamConnectionState) => handlers.onStateChange(state)
 
@@ -77,6 +92,7 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
 
     ws.onopen = () => {
       attempts = 0
+      connectedOnce = true
       setState('live')
     }
     ws.onmessage = (msg) => {
@@ -103,13 +119,20 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
     ws.onerror = () => {
       // onclose follows; retry logic lives there.
     }
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       socket = null
       if (closed) return
       if (lastStatus && isTerminalStatus(lastStatus)) {
         setState('closed')
         return
       }
+      if (ev.code === CLOSE_UNKNOWN_RUN) {
+        // The server already sent its "Unknown run" error event, so just
+        // stop — retrying a run the server does not know cannot help.
+        setState('closed')
+        return
+      }
+      lastCloseCode = ev.code
       scheduleRetry()
     }
   }
@@ -120,7 +143,7 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
       setState('closed')
       handlers.onEvent({
         type: 'error',
-        message: 'Live stream disconnected after repeated retries. Telemetry below may be incomplete.',
+        message: `Live stream disconnected after repeated retries${describeClose(lastCloseCode, connectedOnce)}. Telemetry below may be incomplete.`,
       })
       return
     }

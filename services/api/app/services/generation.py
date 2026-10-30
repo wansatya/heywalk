@@ -234,6 +234,8 @@ def import_sample_controller(
     The sample (e.g. walk to the flag) replaces controller.py and the
     project's objective is cleared, so the next Start grades the default
     flag behavior instead of a stale objective from an earlier generate.
+    Its matching task text is written too: a fresh sequence otherwise has
+    no task, which keeps Start disabled even though the sample is runnable.
     """
     if store.get_project(project_id) is None:
         raise ProjectNotFoundError(project_id)
@@ -242,6 +244,8 @@ def import_sample_controller(
         store, project_id, "controller.py", robot.controller
     )
     store.set_project_objectives(project_id, None)
+    if robot.sample_task:
+        store.set_project_task_description(project_id, robot.sample_task)
     return saved
 
 
@@ -257,12 +261,7 @@ async def handle_generate(
         raise ProjectNotFoundError(project_id)
     task = task_description or project["task_description"]
     if task_description:
-        with store._write_lock, store._connect() as conn:  # noqa: SLF001
-            conn.execute(
-                "UPDATE projects SET task_description = ? WHERE id = ?",
-                (task_description, project_id),
-            )
-        store.touch_project(project_id)
+        store.set_project_task_description(project_id, task_description)
 
     model_client = client
     model_name = settings.muse_model

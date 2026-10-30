@@ -15,45 +15,45 @@ export function DiffView({ path, oldText, newText }: { path: string; oldText: st
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 bg-white/[0.04] px-3 py-2 font-mono text-xs text-slate-200 transition-colors hover:bg-white/[0.08]"
+        className="flex w-full items-center gap-2 bg-stone-50 px-3 py-2 font-mono text-xs text-stone-700 transition-colors hover:bg-stone-100"
         title={open ? 'Collapse diff' : 'Expand diff'}
       >
-        <FileDiff size={14} className="text-sky-300" />
+        <FileDiff size={14} className="text-sky-600" />
         <span className="truncate font-semibold">{path}</span>
         <span className="ml-auto shrink-0 font-sans text-xs">
           {oldText === null ? (
-            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-semibold text-emerald-300">new file</span>
+            <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-700">new file</span>
           ) : (
             <span className="font-mono text-xs">
-              <span className="font-semibold text-emerald-300">+{added}</span>
-              <span className="text-slate-500"> / </span>
-              <span className="font-semibold text-red-300">−{removed}</span>
+              <span className="font-semibold text-emerald-600">+{added}</span>
+              <span className="text-stone-400"> / </span>
+              <span className="font-semibold text-red-600">−{removed}</span>
             </span>
           )}
         </span>
       </button>
       {open && (
-        <div className="max-h-56 overflow-auto bg-black/40 font-mono text-xs leading-relaxed py-1">
+        <div className="max-h-56 overflow-auto bg-stone-50/50 font-mono text-xs leading-relaxed py-1">
           {oldText === null && (
-            <p className="px-3 py-1.5 text-slate-400">New file created by the correction — no previous version.</p>
+            <p className="px-3 py-1.5 text-stone-500">New file created by the correction — no previous version.</p>
           )}
           {rows === null && oldText !== null && (
-            <p className="px-3 py-1.5 text-slate-400">File too large for an inline diff — see the editor.</p>
+            <p className="px-3 py-1.5 text-stone-500">File too large for an inline diff — see the editor.</p>
           )}
           {rows !== null && hunks.length === 0 && (
-            <p className="px-3 py-1.5 text-slate-400">No line changes.</p>
+            <p className="px-3 py-1.5 text-stone-500">No line changes.</p>
           )}
           {hunks.map((row, idx) => (
             <div
               key={idx}
               className={clsx(
                 'flex gap-2 whitespace-pre-wrap px-3 py-0.5',
-                row.kind === 'add' && 'bg-emerald-500/15 text-emerald-200',
-                row.kind === 'del' && 'bg-red-500/15 text-red-200',
-                row.kind === 'same' && 'text-slate-500',
+                row.kind === 'add' && 'bg-emerald-50 text-emerald-800',
+                row.kind === 'del' && 'bg-red-50 text-red-800',
+                row.kind === 'same' && 'text-stone-400',
               )}
             >
-              <span className="w-8 shrink-0 select-none text-right text-slate-500">
+              <span className="w-8 shrink-0 select-none text-right text-stone-400">
                 {row.kind === 'add' ? row.newNo : row.oldNo}
               </span>
               <span className="w-3 shrink-0 select-none font-bold">

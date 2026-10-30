@@ -94,8 +94,7 @@ export function MicroduckViewport() {
         setMeshesReady(true)
         if (failed.length > 0) {
           setLoadError(
-            `${failed.length} mesh file(s) failed to load (${failed.slice(0, 3).join(', ')}${
-              failed.length > 3 ? '…' : ''
+            `${failed.length} mesh file(s) failed to load (${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''
             }); affected parts show as markers.`,
           )
         }
@@ -160,7 +159,7 @@ export function MicroduckViewport() {
   if (webglError) {
     return (
       <div className="flex h-full w-full items-center justify-center p-3 text-center">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-stone-500">
           3D view unavailable ({webglError}). Switch to the Joints tab for the run result.
         </p>
       </div>
@@ -170,9 +169,9 @@ export function MicroduckViewport() {
   if (isRigRun) {
     return (
       <div className="flex h-full w-full items-center justify-center p-3 text-center">
-        <p className="max-w-xs text-[11px] leading-relaxed text-slate-400">
+        <p className="max-w-xs text-[11px] leading-relaxed text-stone-500">
           This run streams joint motion but no 3D body poses (generated rig), so there is no duck to
-          pose. Install the official <span className="text-slate-200">MicroDuck</span> robot from the
+          pose. Install the official <span className="text-stone-800 font-medium">MicroDuck</span> robot from the
           Robot panel and rerun for the live 3D duck.
         </p>
       </div>
@@ -186,33 +185,32 @@ export function MicroduckViewport() {
       <div ref={containerRef} className="h-full w-full" role="img" aria-label="MicroDuck 3D view" />
       <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
         <span
-          className={`rounded-lg px-2.5 py-1 text-xs font-bold shadow-md ${
-            arrange
-              ? 'bg-amber-500 text-slate-950'
-              : isLive
-                ? 'bg-emerald-500 text-slate-950'
-                : 'bg-sky-500 text-slate-950'
-          }`}
+          className={`rounded-lg px-2.5 py-1 text-xs font-bold shadow-md ${arrange
+            ? 'bg-amber-500 text-white'
+            : isLive
+              ? 'bg-emerald-500 text-white'
+              : 'bg-sky-500 text-white'
+            }`}
         >
           {arrange
             ? 'Arranging · next Start'
             : isLive
-              ? `Live · ${livePoses.length + envPoses.length} bodies`
-              : 'STAND preview'}
+              ? `MicroDuck · ${livePoses.length + envPoses.length} poses`
+              : 'ready'}
         </span>
         {!arrange && customLayout && (
-          <span className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-slate-950 shadow-md">
+          <span className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-white shadow-md">
             custom layout
           </span>
         )}
       </div>
       <div className="absolute right-3 top-3 flex items-center gap-2">
-        <span className="pointer-events-none hidden rounded-lg border border-border-subtle/60 bg-black/70 px-2.5 py-1 font-mono text-xs text-slate-400 backdrop-blur-md md:block">
+        <span className="pointer-events-none hidden rounded-lg border border-border-subtle/60 bg-white/80 px-2.5 py-1 font-mono text-xs text-stone-500 backdrop-blur-md md:block">
           {arrange
             ? 'drag duck & props to move · alt-drag duck to turn'
             : isLive
-              ? 'live MuJoCo poses · drag orbit · scroll zoom'
-              : 'official STAND pose · drag orbit · scroll zoom'}
+              ? 'live · drag orbit · scroll zoom'
+              : 'waiting.. · drag orbit · scroll zoom'}
         </span>
         {arrange ? (
           <>
@@ -220,7 +218,7 @@ export function MicroduckViewport() {
               <button
                 type="button"
                 onClick={() => clearNextLayout()}
-                className="flex items-center gap-1 rounded-lg border border-border-subtle/80 bg-elevated/90 px-2.5 py-1 text-xs font-medium text-slate-200 backdrop-blur-md transition-colors hover:bg-elevated hover:text-white shadow-xs"
+                className="flex items-center gap-1 rounded-lg border border-border-subtle/80 bg-white/90 px-2.5 py-1 text-xs font-medium text-stone-700 backdrop-blur-md transition-colors hover:bg-white hover:text-stone-900 shadow-xs"
                 title="Reset the duck spawn and prop spots to the composed defaults"
               >
                 Reset
@@ -229,7 +227,7 @@ export function MicroduckViewport() {
             <button
               type="button"
               onClick={() => setArrange(false)}
-              className="flex items-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-500 px-3 py-1 text-xs font-bold text-slate-950 shadow-md transition-all hover:bg-amber-400 active:scale-[0.98]"
+              className="flex items-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-400 active:scale-[0.98]"
               title="Finish arranging (the layout applies to the next Start)"
             >
               Done
@@ -240,7 +238,7 @@ export function MicroduckViewport() {
             type="button"
             onClick={() => setArrange(true)}
             disabled={runActive}
-            className="flex items-center gap-1.5 rounded-lg border border-border-subtle/80 bg-elevated/90 px-2.5 py-1 text-xs font-medium text-slate-200 backdrop-blur-md transition-colors hover:bg-elevated hover:text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg border border-border-subtle/80 bg-white/90 px-2.5 py-1 text-xs font-medium text-stone-700 backdrop-blur-md transition-colors hover:bg-white hover:text-stone-900 shadow-xs disabled:cursor-not-allowed disabled:opacity-40"
             title={
               runActive
                 ? 'Arranging is unavailable while a run streams'
@@ -254,7 +252,7 @@ export function MicroduckViewport() {
         <button
           type="button"
           onClick={resetToDefaultView}
-          className="flex items-center gap-1.5 rounded-lg border border-border-subtle/80 bg-elevated/90 px-2.5 py-1 text-xs font-medium text-slate-200 backdrop-blur-md transition-colors hover:bg-elevated hover:text-white shadow-xs"
+          className="flex items-center gap-1.5 rounded-lg border border-border-subtle/80 bg-white/90 px-2.5 py-1 text-xs font-medium text-stone-700 backdrop-blur-md transition-colors hover:bg-white hover:text-stone-900 shadow-xs"
           title="Reset camera to the default view (clears your saved view)"
         >
           <RotateCcw size={13} />
@@ -264,12 +262,12 @@ export function MicroduckViewport() {
       {(loadingMeshes || loadError) && (
         <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-center">
           {loadingMeshes && loadProgress && (
-            <span className="rounded-lg border border-border-subtle/60 bg-black/75 px-3 py-1 font-mono text-xs text-slate-300 shadow-md backdrop-blur-md">
+            <span className="rounded-lg border border-border-subtle/60 bg-white/85 px-3 py-1 font-mono text-xs text-stone-600 shadow-md backdrop-blur-md">
               loading meshes {loadProgress.loaded}/{loadProgress.total}…
             </span>
           )}
           {!loadingMeshes && loadError && (
-            <span className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 shadow-md">
+            <span className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
               {loadError}
             </span>
           )}
@@ -277,7 +275,7 @@ export function MicroduckViewport() {
       )}
       {!meshesReady && !loadingMeshes && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="rounded-lg border border-border-subtle/60 bg-black/75 px-3 py-1.5 font-mono text-xs text-slate-400 shadow-md backdrop-blur-md">
+          <span className="rounded-lg border border-border-subtle/60 bg-white/85 px-3 py-1.5 font-mono text-xs text-stone-500 shadow-md backdrop-blur-md">
             preparing 3D view…
           </span>
         </div>

@@ -416,6 +416,8 @@ def test_import_sample_controller_writes_and_resets_objective(client, project_id
     assert "starter" in body["content"].lower()
     project = client.get(f"/api/projects/{project_id}").json()
     assert project["objectives"] is None
+    # The sample's task must replace an empty/stale task so Start is enabled.
+    assert project["task_description"] == "Walk to the green flag then stop safely."
     read = client.get(f"/api/projects/{project_id}/files/controller.py").json()
     assert read["content"] == body["content"]
     missing = client.post(

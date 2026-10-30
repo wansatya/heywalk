@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 
 import pytest
+from starlette.websockets import WebSocketDisconnect
 
 from app.api.stream import (
     REPLAY_TELEMETRY_SAMPLES,
@@ -67,6 +68,30 @@ def test_replay_keeps_every_event_but_only_recent_telemetry():
     assert telemetry[-1]["sample"]["t"] == pytest.approx(
         (REPLAY_TELEMETRY_SAMPLES + 9) * 0.05
     )
+
+
+def test_stream_failure_is_logged_and_closes_1011(
+    client, project_id, monkeypatch, caplog
+):
+    """A broken replay must be visible in the API logs, not a silent retry loop.
+
+    Without this the client just sees repeated closes and reports an
+    undiagnosable "disconnected after retries".
+    """
+    _install_robot(client, project_id)
+    run_id = client.post(f"/api/projects/{project_id}/runs", json={}).json()["id"]
+
+    def boom(self, run_id):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "app.services.execution.ExecutionManager.replay_events", boom
+    )
+    with client.websocket_connect(f"/api/runs/{run_id}/stream") as websocket:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            websocket.receive_json()
+    assert exc.value.code == 1011
+    assert "run stream failed" in caplog.text
 
 
 def test_stream_unknown_run_errors_and_closes(client):

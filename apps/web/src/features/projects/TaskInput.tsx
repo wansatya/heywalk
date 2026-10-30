@@ -1,14 +1,7 @@
 import { Sparkles } from 'lucide-react'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { ActionButton, Panel } from '../../components/Panel'
-
-/** One-click objective presets: the runner knows these props by name. */
-const TASK_EXAMPLES = [
-  'Walk to the green flag and stop safely.',
-  'Go to the box in front of you and stop.',
-  'Kick the ball away from you, then stop.',
-  'Kick the ball away, then walk to the green flag and stop safely.',
-] as const
+import { useElapsedSeconds } from '../../components/useElapsedSeconds'
 
 export function TaskInput() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId)
@@ -20,6 +13,7 @@ export function TaskInput() {
 
   const generating = generation.status === 'loading'
   const fixing = fix.status === 'loading'
+  const generationElapsed = useElapsedSeconds(generating)
   const taskEmpty = taskDraft.trim().length === 0
 
   return (
@@ -43,7 +37,7 @@ export function TaskInput() {
       }
     >
       <div className="p-3.5">
-        <label htmlFor="task-description" className="mb-2 block text-xs font-medium text-slate-400 leading-normal">
+        <label htmlFor="task-description" className="mb-2 block text-xs font-medium text-stone-500 leading-normal">
           Describe what the robot should do.
         </label>
         <textarea
@@ -51,23 +45,19 @@ export function TaskInput() {
           value={taskDraft}
           onChange={(e) => setTaskDraft(e.target.value)}
           rows={5}
-          className="w-full resize-y rounded-xl border border-border-subtle bg-base p-3 text-xs leading-relaxed text-slate-100 outline-none transition-all placeholder:text-slate-500 focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/20 shadow-inner"
+          className="w-full resize-y rounded-xl border border-border-subtle bg-base p-3 text-xs leading-relaxed text-stone-800 outline-none transition-all placeholder:text-stone-400 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 shadow-inner"
           placeholder="Walk to the green flag and stop safely…"
         />
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {TASK_EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => setTaskDraft(example)}
-              disabled={generating || fixing}
-              className="rounded-full border border-border-subtle bg-white/[0.03] px-2.5 py-1 text-start text-[11px] text-slate-400 transition-colors hover:border-amber-400/40 hover:text-slate-200 disabled:opacity-50"
-              title="Use this task description"
-            >
-              {example}
-            </button>
-          ))}
-        </div>
+        {generating && (
+          <div
+            className="mt-2.5 flex items-center gap-2 text-xs font-medium leading-relaxed text-stone-500"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-stone-400 border-t-transparent" />
+            Muse Spark is generating the controller from this task… {generationElapsed}s
+          </div>
+        )}
       </div>
     </Panel>
   )

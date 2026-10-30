@@ -89,9 +89,10 @@ class LocomotionRunner:
     goal is published on /goal_pose, so one run can e.g. kick the ball
     and then walk to the flag. go_to reaches a point (the flag by
     default) and stops, touch ends passing on arena wall contact, kick
-    needs measured ball displacement, and wander roams until the window
-    ends (so it must be last) with survival (no fall, no disqualifying
-    contact) as the verdict. The run passes only when every phase does.
+    needs measured ball displacement, and wander roams with no window
+    until the arena wall ends it passing (so it must be last) — an
+    obstacle contact or a fall fails it instead. The run passes only
+    when every phase does.
     """
 
     def __init__(self, engine: Any, scenario: Any) -> None:
@@ -425,11 +426,17 @@ class LocomotionRunner:
         ):
             self.reached = True
             self._phase_succeeded(now, "goal_reached")
+        elif self.objective_type == "wander" and self._touched_wall():
+            # Wander has no window: it roams until the arena wall ends it
+            # passing (like touch), an obstacle contact ends it failing,
+            # or the duck falls. Walls are goal geoms on wander runs, so a
+            # wall touch lands here; obstacle contacts land below instead.
+            self.touched = True
+            self._phase_succeeded(now, "wall_touched")
+        elif self.objective_type == "wander" and self.engine.contacts > 0:
+            self._finish(now, "contact")
         elif now >= self.phase_deadline:
-            if self.objective_type == "wander":
-                self._phase_succeeded(now, "wander_complete")
-            else:
-                self._window_elapsed(now)
+            self._window_elapsed(now)
 
     @property
     def _is_last_phase(self) -> bool:
@@ -568,6 +575,13 @@ class LocomotionRunner:
                 f" closest goal approach {self.min_flag_m:.2f} m in this"
                 f" phase's {self.phase_deadline - self.phase_started_at:g}s"
                 " window."
+            )
+        elif self.objective_type == "wander" and self.touched:
+            passed = True
+            reason = (
+                "Touched the arena wall and stopped after wandering"
+                f" {self.distance_m:.2f} m with no fall and no"
+                " obstacle contact."
             )
         elif self.objective_type == "wander":
             passed = True

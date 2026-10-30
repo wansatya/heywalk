@@ -596,7 +596,8 @@ def test_touch_wall_passes(tmp_path: Path):
     loop.close()
 
 
-def test_wander_completes_on_survival(tmp_path: Path):
+def test_wander_ignores_the_window(tmp_path: Path):
+    """Wander has no window: a clean roam outlives it and passes at the limit."""
     loop = _loop(
         tmp_path,
         _world(
@@ -604,16 +605,100 @@ def test_wander_completes_on_survival(tmp_path: Path):
             # duck must not physically plow through the pole.
             env_layout={"env_flag": [0.1, 0.7]},
             locomotion_duration_s=6.0,
+            time_limit=7.0,
             objective={"type": "wander", "target": None},
         ),
     )
-    _run_until_finished(loop)
-    payload = loop.result_payload("tests_complete")
-    result = payload["tests"][0]
-    assert result["passed"] is True, result
-    assert result["outcome"] == "wander_complete"
-    assert result["distance_m"] > 0.2
-    loop.close()
+    try:
+        # Mirror the harness: stop ticking at the time limit, then finalize.
+        for _ in range(2000):
+            loop.tick()
+            if loop.finished or loop.timed_out:
+                break
+        assert loop.timed_out
+        assert loop.runner.finished is False
+        payload = loop.result_payload("timeout")
+        result = payload["tests"][0]
+        assert result["passed"] is True, result
+        assert result["outcome"] == "run_ended"
+        assert result["duration_s"] > 6.0
+        assert result["distance_m"] > 0.5
+    finally:
+        loop.close()
+
+
+def test_wander_wall_touch_passes(tmp_path: Path):
+    """A wander run ends passing when the duck reaches the arena wall."""
+    from app.simulator.microduck.model import wall_geom_names
+
+    loop = _loop(
+        tmp_path,
+        _world(
+            spawn_xy=[1.6, 0.0],
+            locomotion_duration_s=6.0,
+            goal_geoms=list(flag_geom_names()) + list(wall_geom_names()),
+            objective={"type": "wander", "target": None},
+        ),
+    )
+    try:
+        _run_until_finished(loop)
+        payload = loop.result_payload("tests_complete")
+        result = payload["tests"][0]
+        assert result["passed"] is True, result
+        assert result["outcome"] == "wall_touched"
+        assert "wall" in result["reason"].lower()
+        assert result["phase_duration_s"] < 6.0
+    finally:
+        loop.close()
+
+
+def test_wander_obstacle_contact_fails_immediately(tmp_path: Path):
+    """Any disqualifying contact ends a wander run failing, without waiting."""
+    loop = _loop(
+        tmp_path,
+        _world(
+            locomotion_duration_s=30.0,
+            objective={"type": "wander", "target": None},
+        ),
+    )
+    try:
+        for _ in range(10):
+            loop.tick()
+        assert loop.runner.finished is False
+        # A crate brush lands in engine.contacts (only goal geoms are
+        # excluded); the roam must end on this tick, not at the window.
+        loop.engine.contacts = 1
+        loop.runner.tick(loop.sim_time)
+        assert loop.runner.finished is True
+        result = loop.results()[-1]
+        assert result["passed"] is False, result
+        assert result["outcome"] == "contact"
+        assert "disqualifying contact" in result["reason"].lower()
+        assert result["phase_duration_s"] < 30.0
+    finally:
+        loop.close()
+
+
+def test_wander_runs_exclude_walls_from_contacts():
+    """Production wiring: walls are goal geoms when wander is a phase."""
+    from app.services.execution import _microduck_goal_geoms
+    from app.simulator.microduck.model import COMPOSED_MARKER, wall_geom_names
+
+    class _Store:
+        def list_files(self, project_id):
+            return [{"path": "robot.xml"}]
+
+        def get_file(self, project_id, path):
+            return {"content": f"<mujoco><!-- {COMPOSED_MARKER} -->"}
+
+    wander = _microduck_goal_geoms(
+        _Store(), "p", {"objectives": [{"type": "wander"}]}
+    )
+    assert set(wall_geom_names()) <= set(wander)
+    plain = _microduck_goal_geoms(
+        _Store(), "p", {"objectives": [{"type": "go_to"}]}
+    )
+    assert not (set(wall_geom_names()) & set(plain))
 
 
 def test_objective_target_body_resolves_the_prop(tmp_path: Path):
