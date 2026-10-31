@@ -242,7 +242,7 @@ Walking a free-standing biped is a control problem, not a scripted animation. Ho
 
 | | |
 |---|---|
-| **Source** | Pollen Robotics MicroDuck policies (`microduck_rl`, Apache-2.0; attribution in `services/api/app/simulator/microduck/ATTRIBUTION.md`) |
+| **Source** | Pollen Robotics MicroDuck policies (Hugging Face `pollen-robotics/microduck-policies`, Apache-2.0; see `THIRD_PARTY_NOTICES.md`) |
 | **Input** | 61-D observation, raw physical units: trunk angular velocity, projected gravity, joint positions minus `STAND`, joint velocities, previous action, twist command, head deltas, body deltas |
 | **Output** | 14-D position-target residual added to the `STAND` keyframe |
 | **Rate** | 50 Hz, exactly as trained |
@@ -406,6 +406,7 @@ heywalk/
 ├── docker/              # API, web, and isolated ROS 2 runner images
 ├── docker-compose.yml   # local development stack
 ├── .env.example         # backend configuration template
+├── THIRD_PARTY_NOTICES.md # third-party licenses and attribution
 ├── showcase.mp4         # 73-second demo walkthrough
 └── showcase-poster.jpg  # poster frame used by this README
 ```
@@ -505,7 +506,7 @@ Pause/resume suspends physics without losing state; the emergency-stop control z
 
 ### MicroDuck (default robot)
 
-The bundled MicroDuck entry is the official Pollen Robotics MuJoCo model (`microduck_rl`, Apache-2.0 MJCF + CC BY-NC-SA 4.0 meshes — see `services/api/app/simulator/microduck/ATTRIBUTION.md`).
+The bundled MicroDuck entry is the official Pollen Robotics MuJoCo model (`microduck_rl`, Apache-2.0 MJCF + CC BY-NC-SA 4.0 meshes — see `THIRD_PARTY_NOTICES.md` for the file-level license inventory and `services/api/app/simulator/microduck/ATTRIBUTION.md` for provenance).
 
 No extra download is needed: the model, its 38 meshes, and the walking policy ship with the app, including inside the Docker runner image. Runs use the official physics (`dt = 0.005`, 50 Hz control, STAND reset), treat foot-sole touches as expected ground contact, and report a fall when the trunk drops below `0.08 m`.
 
@@ -513,7 +514,7 @@ The starter controller tracks joint targets and steers toward the goal with a fi
 
 A run is not marked successful merely because the model says it worked. The evaluator must confirm the objective: every phase met, no disqualifying contact, no fall, and a normal termination (MuJoCo locomotion or joint tests), or the goal reached within tolerance while meeting the safety criteria (2D arena).
 
-For model provenance, licenses, and attributions — including the MicroDuck MJCF/meshes and the upstream walking policy — see `services/api/app/simulator/microduck/ATTRIBUTION.md`. The measured budgets above come from the runner and API sources in this repository.
+For consolidated third-party licenses and attributions — including the MicroDuck MJCF/meshes and the upstream walking policy — see `THIRD_PARTY_NOTICES.md`. Detailed model provenance is in `services/api/app/simulator/microduck/ATTRIBUTION.md`. The measured budgets above come from the runner and API sources in this repository.
 
 <br/>
 
@@ -552,6 +553,27 @@ Generated code is untrusted, so every run executes in its own single-use contain
 - Simulation success is not proof of physical-world safety; the walking policy is upstream's, not a validated safety controller.
 
 **HeyWalk is a research prototype for AI-assisted robotics experimentation, not a certified robot-control system. Do not connect this prototype to a physical robot.**
+
+<br/>
+
+## Licensing
+
+HeyWalk's original application code and documentation are released under the
+MIT License (see [`LICENSE`](LICENSE)). That license does not cover the
+third-party components bundled with the simulator:
+
+- The Pollen Robotics MicroDuck MJCF robot descriptions and scene files are
+  Apache-2.0.
+- The 38 MicroDuck STL meshes are CC BY-NC-SA 4.0. That license includes a
+  non-commercial restriction; commercial use or redistribution needs separate
+  review. The upstream notice and attribution ship beside the files in
+  `services/api/app/simulator/microduck/assets/`.
+- The upstream `velstand.onnx` walking policy is Apache-2.0.
+- MuJoCo is Apache-2.0, and ONNX Runtime is MIT.
+
+See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the file-level
+inventory, upstream sources, attribution, modification record, and license
+links.
 
 <br/>
 

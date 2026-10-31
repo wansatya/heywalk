@@ -1,7 +1,9 @@
 # MicroDuck Model Attribution
 
 The robot model vendored in this directory is the official open-source
-MicroDuck model from Pollen Robotics (Hugging Face).
+MicroDuck model from Pollen Robotics. The walking policy comes from Pollen
+Robotics' Hugging Face policy repository. See `THIRD_PARTY_NOTICES.md` at the
+repository root for the consolidated file-level license inventory.
 
 ## Sources
 
@@ -50,7 +52,8 @@ MicroDuck model from Pollen Robotics (Hugging Face).
   copyright Pollen Robotics. See https://github.com/pollen-robotics/microduck_rl/blob/main/LICENSE
 - `assets/*.stl` meshes: **Creative Commons BY-NC-SA 4.0**
   (Attribution-NonCommercial-ShareAlike 4.0 International).
-  See `LICENSE-MODELS.md` (copy of the upstream file) and
+  See `LICENSE-MODELS.md` (copy of the upstream file), the
+  point-of-distribution notice in `assets/README.md`, and
   https://creativecommons.org/licenses/by-nc-sa/4.0/
 - When sharing these meshes or an adaptation: credit Pollen Robotics, link
   the source repository and the CC BY-NC-SA 4.0 license, note modifications,
@@ -68,4 +71,5 @@ performed by `model.compose_scene_xml()`: the official `<worldbody>` robot
 subtree is preserved element-for-element, and a ground plane plus the
 official keyframes (from `scene.xml`) are added so the model simulates
 stand-alone. Joint hierarchy, bodies, inertias, actuators, sensors, and
-contact classes are untouched. See `docs/microduck-integration.md`.
+contact classes are untouched. See `model.py` (`compose_scene_xml`) for the
+exact composition.
