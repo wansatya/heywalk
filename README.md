@@ -1,10 +1,10 @@
 <div align="center"><pre>
-██   ██ ███████ ██   ██ ██     ██  █████  ██      ██   ██
-██   ██ ██      ██   ██ ██     ██ ██   ██ ██      ██  ██
-███████ ██████   ██ ██  ██  █  ██ ███████ ██      ████
-██   ██ ██        ███   ██ █ █ ██ ██   ██ ██      ██ ██
-██   ██ ██         █    ███   ███ ██   ██ ██      ██  ██
-██   ██ ███████    █     ██   ██  ██   ██ ███████ ██   ██
+██╗  ██╗███████╗██╗   ██╗██╗    ██╗ █████╗ ██╗     ██╗  ██╗
+██║  ██║██╔════╝╚██╗ ██╔╝██║    ██║██╔══██╗██║     ██║ ██╔╝
+███████║█████╗   ╚████╔╝ ██║ █╗ ██║███████║██║     █████╔╝
+██╔══██║██╔══╝    ╚██╔╝  ██║███╗██║██╔══██║██║     ██╔═██╗
+██║  ██║███████╗   ██║   ╚███╔███╔╝██║  ██║███████╗██║  ██╗
+╚═╝  ╚═╝╚══════╝   ╚═╝    ╚══╝╚══╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
 </pre></div>
 
 ### Make AI-generated robot behaviors prove they work.
@@ -24,11 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="showcase.mp4" title="Play the HeyWalk showcase">
-    <img src="showcase-poster.jpg" alt="HeyWalk workspace: the MicroDuck standing in the MuJoCo scene with the goal flag, ball, and crates" width="880">
-  </a>
-  <br/>
-  <sub>▶ <a href="showcase.mp4">Watch the 73-second showcase</a> (MP4, 11 MB)</sub>
+  <img src="demo.gif" alt="HeyWalk demo: the MicroDuck running AI-generated controllers in the MuJoCo scene" width="880">
 </p>
 
 AI can generate robot code. But generated code is not **proof that a robot can perform the task safely**.
