@@ -9,12 +9,12 @@ import {
   type TestResult,
 } from '../../api/types'
 import { clsx } from '../../components/clsx'
-import { propLabel, objectiveLabel } from './objectiveLabel'
+import { propLabel } from './objectiveLabel'
 import { RunPhaseOverlay } from './RunPhaseOverlay'
 
 // The 3D skeleton pulls in three.js; keep it out of the initial bundle.
-const MicroduckViewport = lazy(() =>
-  import('./MicroduckViewport').then((m) => ({ default: m.MicroduckViewport })),
+const RobotViewport = lazy(() =>
+  import('./RobotViewport').then((m) => ({ default: m.RobotViewport })),
 )
 
 /** Smallest power-of-two-ish scale that fits `value`, so gauges stay stable. */
@@ -193,7 +193,7 @@ export function JointViewport() {
   const runDetail = useExperimentStore((s) => s.runDetail)
   const telemetry = useExperimentStore((s) => s.telemetry)
   // 3D model vs joint gauges share the upper pane; the automated tests below
-  // stay visible in both views. Null = follow the run (live/preview duck by
+  // stay visible in both views. Null = follow the run (live/preview robot by
   // default, gauges for rig runs that stream no body poses).
   const [viewOverride, setViewOverride] = useState<'model' | 'joints' | null>(null)
   // The automated-tests panel floats over the simulator and can be closed;
@@ -330,7 +330,7 @@ export function JointViewport() {
         <RunPhaseOverlay />
         {view === 'model' ? (
           <Suspense fallback={null}>
-            <MicroduckViewport />
+            <RobotViewport />
           </Suspense>
         ) : (
           <div className="h-full overflow-y-auto p-3.5">
