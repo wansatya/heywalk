@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import generation, projects, robots, runs, stream
+from .api import foundry, generation, projects, robots, runs, stream
 from .config import Settings, load_settings
 from .db import Store
+from .foundry.jobs import FoundryJobManager
+from .foundry.store import FoundryStore
 from .runner import build_runner
 from .services.execution import ExecutionManager, RunEventBus
 
@@ -20,6 +23,9 @@ API_VERSION = "0.1.0"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
+    jobs: FoundryJobManager | None = getattr(app.state, "foundry_jobs", None)
+    if jobs is not None:
+        jobs.shutdown()
     manager: ExecutionManager | None = getattr(app.state, "exec", None)
     if manager is not None:
         await manager.shutdown()
@@ -36,11 +42,20 @@ def create_app(
     manager = ExecutionManager(
         store, bus=RunEventBus(), runner=build_runner(resolved)
     )
+    foundry_root = resolved.foundry_root or str(
+        Path(__file__).resolve().parent / "simulator" / "foundry"
+    )
+    foundry_store = FoundryStore(store.db_path, foundry_root)
+    foundry_jobs = FoundryJobManager(
+        foundry_store, max_workers=resolved.foundry_workers
+    )
 
     app = FastAPI(title="HeyWalk API", version=API_VERSION, lifespan=lifespan)
     app.state.settings = resolved
     app.state.store = store
     app.state.exec = manager
+    app.state.foundry = foundry_store
+    app.state.foundry_jobs = foundry_jobs
 
     app.add_middleware(
         CORSMiddleware,
@@ -56,6 +71,7 @@ def create_app(
         return {"status": "ok", "service": "heywalk-api", "version": API_VERSION}
 
     app.include_router(projects.router)
+    app.include_router(foundry.router)
     app.include_router(generation.router)
     app.include_router(robots.router)
     app.include_router(runs.project_router)

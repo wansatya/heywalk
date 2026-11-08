@@ -13,10 +13,10 @@ const WorldViewport = lazy(() =>
  * Picks the visualization that matches the selected run's backend.
  *
  * With no run selected the MuJoCo view is still shown: a fresh sequence is
- * created with MicroDuck installed, so the duck and its composed scene are
- * visible in the STAND preview before anything runs. Showing the preview only
- * loads meshes — it never creates a run or starts the runner, and Start stays
- * disabled until the sequence has a task and a controller.
+ * created with the default robot installed, so the robot and its composed
+ * scene are visible in the STAND preview before anything runs. Showing the
+ * preview only loads meshes — it never creates a run or starts the runner,
+ * and Start stays disabled until the sequence has a task and a controller.
  */
 export function SimViewport() {
   const runDetail = useExperimentStore((s) => s.runDetail)

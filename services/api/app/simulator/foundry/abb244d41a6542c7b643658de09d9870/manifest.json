@@ -1,0 +1,154 @@
+{
+  "foundry_project_id": "abb244d41a6542c7b643658de09d9870",
+  "sequence_project_id": null,
+  "name": "Tes",
+  "category": "biped",
+  "version": 2,
+  "generated_at": "2026-11-05T11:57:51.014089+00:00",
+  "generator": "heywalk-foundry",
+  "simulation_contract": "microduck_contract_v1",
+  "model_path": "robot.xml",
+  "components": [
+    {
+      "id": "4ff9f17f02464fed8b39f25995ca0887",
+      "name": "leg_1",
+      "label": "leg_1",
+      "type": "leg",
+      "parent_id": null,
+      "mesh_url": "assets/visual/leg_1.obj",
+      "collision_mesh_url": "assets/collision/leg_1.stl",
+      "confidence": 0.6683937907218933
+    },
+    {
+      "id": "dbadc28dd11e491883bc38cd1e65c1d3",
+      "name": "leg_2",
+      "label": "leg_2",
+      "type": "leg",
+      "parent_id": "4ff9f17f02464fed8b39f25995ca0887",
+      "mesh_url": "assets/visual/leg_2.obj",
+      "collision_mesh_url": "assets/collision/leg_2.stl",
+      "confidence": 0.7887788414955139
+    },
+    {
+      "id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0",
+      "name": "head",
+      "label": "head",
+      "type": "head",
+      "parent_id": "4ff9f17f02464fed8b39f25995ca0887",
+      "mesh_url": "assets/visual/head.obj",
+      "collision_mesh_url": "assets/collision/head.stl",
+      "confidence": 0.5631399154663086
+    }
+  ],
+  "joints": [
+    {
+      "id": "dbadc28dd11e491883bc38cd1e65c1d3_joint",
+      "project_id": "abb244d41a6542c7b643658de09d9870",
+      "component_id": "dbadc28dd11e491883bc38cd1e65c1d3",
+      "parent_component_id": "4ff9f17f02464fed8b39f25995ca0887",
+      "name": "leg_2_joint",
+      "joint_type": "hinge",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "position": [
+        0.0,
+        0.0,
+        0.0405835
+      ],
+      "limits": [
+        -1.0,
+        1.0
+      ],
+      "metadata": {
+        "estimated": true,
+        "body_pos": [
+          -0.0636604774535809,
+          0.0,
+          0.005570291777188326
+        ]
+      }
+    },
+    {
+      "id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_joint",
+      "project_id": "abb244d41a6542c7b643658de09d9870",
+      "component_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0",
+      "parent_component_id": "4ff9f17f02464fed8b39f25995ca0887",
+      "name": "head_joint",
+      "joint_type": "hinge",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "position": [
+        0.0,
+        0.0,
+        0.0246685
+      ],
+      "limits": [
+        -0.785,
+        0.785
+      ],
+      "metadata": {
+        "estimated": true,
+        "body_pos": [
+          -0.03461538461538462,
+          0.0,
+          0.22281167108753314
+        ]
+      }
+    }
+  ],
+  "actuators": [
+    {
+      "id": "dbadc28dd11e491883bc38cd1e65c1d3_actuator",
+      "project_id": "abb244d41a6542c7b643658de09d9870",
+      "joint_id": "dbadc28dd11e491883bc38cd1e65c1d3_joint",
+      "name": "leg_2_motor",
+      "actuator_type": "position",
+      "configuration": {
+        "kp": 60.0,
+        "kv": 2.0,
+        "ctrlrange": [
+          -1.0,
+          1.0
+        ],
+        "forcerange": [
+          -20.0,
+          20.0
+        ],
+        "gear": 1.0,
+        "estimated": true
+      }
+    },
+    {
+      "id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_actuator",
+      "project_id": "abb244d41a6542c7b643658de09d9870",
+      "joint_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_joint",
+      "name": "head_motor",
+      "actuator_type": "position",
+      "configuration": {
+        "kp": 60.0,
+        "kv": 2.0,
+        "ctrlrange": [
+          -0.785,
+          0.785
+        ],
+        "forcerange": [
+          -20.0,
+          20.0
+        ],
+        "gear": 1.0,
+        "estimated": true
+      }
+    }
+  ],
+  "validation_status": "warning",
+  "notes": [
+    "Geometry is reconstructed from visible parts; hidden geometry is not invented.",
+    "Physics values are estimates and are marked as such."
+  ]
+}

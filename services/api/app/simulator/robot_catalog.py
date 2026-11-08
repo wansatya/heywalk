@@ -14,6 +14,15 @@ starter code, never presented as model output — except the MicroDuck entry,
 which installs the official Pollen Robotics model (see
 ``microduck/ATTRIBUTION.md``).
 
+The catalog is also the robot registry: every bundled mesh-backed robot
+exposes the same model-module surface (metadata, scene composition, asset
+staging, 3D-view payloads — see ``microduck/model.py`` and
+``ed209/model.py``), and this module maps robot ids to those modules plus
+the per-robot run defaults. The engine, staging, prompts, and API dispatch
+through the registry (``detect_starter_robot`` on the installed MJCF's
+composition marker), so switching robots means installing another catalog
+entry — no caller imports one robot's module directly.
+
 The arm is a fixed-base, gravity-compensated joint test stand: the trunk is
 welded to the world and the links are free to move, so the automated joint
 tests grade tracking without ground contact ever being mistaken for a
@@ -21,21 +30,39 @@ collision. MicroDuck is the opposite: a free-standing biped with real ground
 contact, where foot touches are expected and a fall is the failure signal.
 Joint tests weld its trunk to a stand (`fix_base`); locomotion runs walk
 free-standing, steered by the generated controller while the vendored
-upstream ONNX policy supplies the gait.
+upstream ONNX policy supplies the gait. ED-209 is a heavier biped in the
+same two-mode shape, except it has no walking policy yet: its joint tests
+run on a lifted stand (`fix_base` + `fix_base_lift`) and locomotion stays
+MicroDuck-only.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from . import ed209 as ed209_package
+from . import microduck as microduck_package
+from .ed209 import (
+    COMPOSED_MARKER as ED209_COMPOSED_MARKER,
+    EXPECTED_GROUND_GEOMS as ED209_EXPECTED_GROUND_GEOMS,
+    FALL_TRUNK_Z as ED209_FALL_TRUNK_Z,
+    OFFICIAL_CONTROL_HZ as ED209_OFFICIAL_CONTROL_HZ,
+    OFFICIAL_KEYFRAME as ED209_OFFICIAL_KEYFRAME,
+    OFFICIAL_TIMESTEP as ED209_OFFICIAL_TIMESTEP,
+    TRUNK_BODY as ED209_TRUNK_BODY,
+    Ed209ModelError,
+    compose_scene_xml as compose_ed209_scene_xml,
+)
 from .microduck import (
+    COMPOSED_MARKER as MICRODUCK_COMPOSED_MARKER,
     EXPECTED_GROUND_GEOMS,
     FALL_TRUNK_Z,
     OFFICIAL_CONTROL_HZ,
     OFFICIAL_KEYFRAME,
     OFFICIAL_TIMESTEP,
     SOURCE_URL as MICRODUCK_SOURCE_URL,
+    TRUNK_BODY as MICRODUCK_TRUNK_BODY,
     MicroduckModelError,
     compose_scene_xml,
 )
@@ -44,10 +71,38 @@ from .robot_description import (
     build_robot_package,
 )
 from .scenario import ScenarioError, default_tests_for_joints
+from .scene import ENV_BODY_PREFIX, WALL_BODIES
 
 
 class UnknownStarterRobotError(KeyError):
     """Raised when a starter robot id is not in the catalog."""
+
+
+# --------------------------------------------------------------------------
+# Shared registry conventions
+# --------------------------------------------------------------------------
+
+#: Shared scene conventions (re-exported): the environment-body prefix
+#: lets the physics engine exclude props from the robot body set without
+#: knowing which robot is installed, and the wall bodies are never
+#: layout-movable, whichever robot runs in the arena.
+
+if (
+    microduck_package.ENV_BODY_PREFIX != ENV_BODY_PREFIX
+    or ed209_package.ENV_BODY_PREFIX != ENV_BODY_PREFIX
+):
+    raise RuntimeError(
+        "Bundled robots disagree on ENV_BODY_PREFIX;"
+        " the engine cannot tell props from robot bodies."
+    )
+
+#: Trunk body names, one per bundled robot (resolution order). The engine
+#: resolves the installed robot's floating base and fall-detector root by
+#: trying these in order instead of importing one robot's module.
+TRUNK_BODIES: tuple[str, ...] = (
+    MICRODUCK_TRUNK_BODY,
+    ED209_TRUNK_BODY,
+)
 
 
 # --------------------------------------------------------------------------
@@ -336,6 +391,42 @@ def _official_microduck_mjcf() -> str:
 
 
 # --------------------------------------------------------------------------
+# ED-209 walker prototype
+# --------------------------------------------------------------------------
+
+#: Scenario defaults applied to runs whose robot is the ED-209 composition
+#: (see ExecutionManager.start_run): its timestep and control rate, STAND
+#: reset, implicit integration for the stiff position servos, foot-sole
+#: ground contacts, fall detection, and body poses for the 3D renderer.
+#: Joint tests run on a lifted stand so the heavy legs swing free of
+#: floor friction (see ed209/model.py). Explicit run settings win.
+ED209_SCENARIO_DEFAULTS: dict[str, Any] = {
+    "dt": ED209_OFFICIAL_TIMESTEP,
+    "control_hz": ED209_OFFICIAL_CONTROL_HZ,
+    "keyframe": ED209_OFFICIAL_KEYFRAME,
+    "integrator": "implicitfast",
+    "expected_contact_geoms": list(ED209_EXPECTED_GROUND_GEOMS),
+    "fall_trunk_z": ED209_FALL_TRUNK_Z,
+    "include_body_poses": True,
+    "fix_base": True,
+    # Legs swing clear of the shared arena crates at this height: the
+    # right toe dips closest to env_box_1 and still clears it by ~6 cm.
+    # Lower lifts let the long foot box graze the crate (measured).
+    "fix_base_lift": 0.30,
+}
+
+
+def _ed209_mjcf() -> str:
+    """Return the ED-209 composed scene, with an actionable load error."""
+    try:
+        return compose_ed209_scene_xml()
+    except Ed209ModelError as exc:
+        raise RobotPackageError(
+            f"Bundled ED-209 model cannot be loaded: {exc}"
+        ) from None
+
+
+# --------------------------------------------------------------------------
 # Two-joint arm
 # --------------------------------------------------------------------------
 
@@ -394,6 +485,16 @@ class StarterRobot:
     controller: str = REFERENCE_CONTROLLER
     #: Task text that matches the sample controller (empty = leave it alone).
     sample_task: str = ""
+    #: Composition marker stamped on the installed MJCF (None for
+    #: primitive-only robots); detection switches physics defaults,
+    #: prompts, and asset staging to this robot.
+    marker: str | None = None
+    #: Run defaults for this robot (dt, keyframe, stand, ...). Treat as
+    #: read-only: callers copy before merging explicit run settings.
+    scenario_defaults: dict[str, Any] = field(default_factory=dict)
+    #: The robot's model package (metadata, assets, 3D payloads), or None
+    #: when the robot needs no bundled files (the arm).
+    models: Any = None
 
     def files(self) -> dict[str, str]:
         """Model-authored files (companions are synthesized on validation)."""
@@ -419,6 +520,27 @@ STARTER_ROBOTS: tuple[StarterRobot, ...] = (
         mjcf=_official_microduck_mjcf(),
         controller=MICRODUCK_REFERENCE_CONTROLLER,
         sample_task="Walk to the green flag then stop safely.",
+        marker=MICRODUCK_COMPOSED_MARKER,
+        scenario_defaults=MICRODUCK_SCENARIO_DEFAULTS,
+        models=microduck_package,
+    ),
+    StarterRobot(
+        id="ed209",
+        name="ED-209 walker (prototype)",
+        summary=(
+            "A platform-owned ED-209-inspired walker prototype: 6 pitch-only"
+            " leg joints, stiff position servos, and real ground contact."
+            " Joint tests run on a lifted stand so the heavy legs swing"
+            " free; locomotion is not supported yet (no walking policy)."
+        ),
+        attribution="HeyWalk prototype model (see ed209/README.md).",
+        license="HeyWalk prototype (no third-party rights needed)",
+        source_url="",
+        mjcf=_ed209_mjcf(),
+        sample_task="",
+        marker=ED209_COMPOSED_MARKER,
+        scenario_defaults=ED209_SCENARIO_DEFAULTS,
+        models=ed209_package,
     ),
     StarterRobot(
         id="arm",
@@ -447,6 +569,21 @@ def get_starter_robot(robot_id: str) -> StarterRobot:
     raise UnknownStarterRobotError(
         f"Unknown starter robot {robot_id!r}; known robots: {known}."
     )
+
+
+def detect_starter_robot(xml_text: str) -> StarterRobot | None:
+    """Bundled robot whose composition marker an MJCF text carries, if any.
+
+    Detection reads the same marker comment the installer wrote, so no
+    extra project state is needed: staging, run defaults, and prompts all
+    switch robots by calling this on the installed robot description.
+    Returns None for generated rigs and primitive-only starters (the arm).
+    """
+    head = xml_text[:4096]
+    for robot in STARTER_ROBOTS:
+        if robot.marker is not None and robot.marker in head:
+            return robot
+    return None
 
 
 def starter_robot_summary(robot: StarterRobot) -> dict[str, Any]:
@@ -493,12 +630,17 @@ def starter_robot_summary(robot: StarterRobot) -> dict[str, Any]:
 
 
 __all__ = [
+    "ED209_SCENARIO_DEFAULTS",
+    "ENV_BODY_PREFIX",
     "MICRODUCK_REFERENCE_CONTROLLER",
     "MICRODUCK_SCENARIO_DEFAULTS",
     "REFERENCE_CONTROLLER",
     "STARTER_ROBOTS",
+    "TRUNK_BODIES",
+    "WALL_BODIES",
     "StarterRobot",
     "UnknownStarterRobotError",
+    "detect_starter_robot",
     "get_starter_robot",
     "starter_robot_summary",
     "starter_robots",

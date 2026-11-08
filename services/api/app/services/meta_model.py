@@ -345,6 +345,23 @@ How this robot is graded — two run modes, implement BOTH in one controller:
 In both modes /emergency_stop (std_msgs/msg/Bool) latches a stop: hold
 still immediately and command no further motion."""
 
+#: Grading contract, stated only when the target is the ED-209 prototype.
+#: Joint tests are the only run mode: there is no walking policy, no
+#: /odom, and no /goal_pose, so the controller tracks joints and nothing
+#: else.
+ED209_GRADING_BRIEF = """\
+How this robot is graded — joint tests only, a single run mode:
+The harness moves one joint at a time to a target published on
+/joint_targets. Your controller MUST read every target and track it on
+/joint_commands (all 6 joints, every tick): measured tracking error,
+settling, and contacts are the entire grade. Before the first target
+arrives, hold the STAND home pose below so every test starts from a
+known pose instead of a zeroed one. This robot has no locomotion mode
+(no walking policy, no arena navigation): do not implement /cmd_vel
+steering, and never stop tracking joints to "steer".
+/emergency_stop (std_msgs/msg/Bool) latches a stop: hold still
+immediately and command no further motion."""
+
 ROBOT_PACKAGE_BRIEF = """\
 Robot package to generate (MuJoCo is the primary simulator):
 - controller.py -- the ROS 2 node described above.
@@ -434,83 +451,150 @@ def _render_evidence(evidence: FixEvidence) -> str:
     return truncate_text("\n".join(lines), MAX_EVIDENCE_CHARS)
 
 
-def target_robot_brief(files: list[dict[str, str]]) -> str:
-    """Describe the project's target robot for the code-generation agent.
-
-    When the project holds the official MicroDuck composition, the agent gets
-    its exact joint/actuator/sensor inventory, the props it can be asked about
-    (body id + live coordinates, generated from the composed scene so prompt
-    and physics cannot disagree), and the control contract. That lets it map
-    "the box in front of you" onto a real body instead of inventing numbers.
-    Generated rigs need no brief: the agent authors their MJCF itself.
-    """
-    from ..simulator.microduck import (
-        is_composed_scene,
-        load_metadata,
-        prop_catalog,
-        stand_joint_targets,
-    )
+def brief_robot_id(files: list[dict[str, str]]) -> str | None:
+    """Bundled robot id installed in a file list, if any (else None)."""
+    from ..simulator.robot_catalog import detect_starter_robot
 
     for entry in files:
         content = str(entry.get("content", ""))
-        if "<mujoco" in content[:4096].lower() and is_composed_scene(content):
-            break
-    else:
-        return ""
-    metadata = load_metadata()
-    joints = ", ".join(metadata.joints)
-    sensors = ", ".join(metadata.sensors)
-    home = ", ".join(
-        f"{name}={value:+.4f}" for name, value in stand_joint_targets()
-    )
-    props = "; ".join(
-        f"{prop['body']} = {prop['label']} at ({prop['x']:+.2f},"
-        f" {prop['y']:+.2f}){' [dynamic]' if prop['free'] else ''}"
-        for prop in prop_catalog()
-    )
-    return (
-        "Target robot: official MicroDuck biped by Pollen Robotics"
-        " (already installed as robot.xml — do NOT rewrite it)."
-        f" 14 position actuators in this exact order: {joints}."
-        " Publish exactly 14 finite commands on /joint_commands in that"
-        " order, clamped to each joint's range in robot.xml."
-        f" Onboard sensors streamed in telemetry: {sensors}."
-        f" STAND home pose in the same order (rad): {home}."
-        " Joint-test runs weld the trunk to a stand at STAND height (the free"
-        " joint in robot.xml is locked), so gradeable tracking never fights"
-        " a fall; locomotion runs instead walk free-standing to the flag."
-        " Gravity and foot-sole ground contact stay real, and touching an"
-        " obstacle still fails the run. Control at 50 Hz (dt=0.005)."
-        f" Scene props (body id = description at start position): {props}."
-        " The duck spawns at (0, 0) facing +x, so 'in front' means +x,"
-        " 'behind' means -x, 'left' is +y and 'right' is -y; the arena walls"
-        " sit at ±2 m. Use these body ids for objective.target_body instead"
-        " of coordinates — the arrange UI can move the props, and a body id"
-        " tracks them. Only env_ball is dynamic (it rolls when pushed)."
-    )
+        if "<mujoco" not in content[:4096].lower():
+            continue
+        robot = detect_starter_robot(content)
+        if robot is not None:
+            return robot.id
+    return None
 
 
-def _interface_section(brief: str) -> str:
+def target_robot_brief(files: list[dict[str, str]]) -> str:
+    """Describe the project's target robot for the code-generation agent.
+
+    When the project holds a bundled robot composition, the agent gets
+    its exact joint/actuator/sensor inventory, the props it can be asked
+    about (body id + live coordinates, generated from the composed scene
+    so prompt and physics cannot disagree), and the control contract.
+    That lets it map "the box in front of you" onto a real body instead
+    of inventing numbers. Generated rigs need no brief: the agent authors
+    their MJCF itself.
+    """
+    robot_id = brief_robot_id(files)
+    if robot_id == "microduck":
+        from ..simulator.microduck import (
+            load_metadata,
+            prop_catalog,
+            stand_joint_targets,
+        )
+
+        metadata = load_metadata()
+        joints = ", ".join(metadata.joints)
+        sensors = ", ".join(metadata.sensors)
+        home = ", ".join(
+            f"{name}={value:+.4f}" for name, value in stand_joint_targets()
+        )
+        props = "; ".join(
+            f"{prop['body']} = {prop['label']} at ({prop['x']:+.2f},"
+            f" {prop['y']:+.2f}){' [dynamic]' if prop['free'] else ''}"
+            for prop in prop_catalog()
+        )
+        return (
+            "Target robot: official MicroDuck biped by Pollen Robotics"
+            " (already installed as robot.xml — do NOT rewrite it)."
+            f" 14 position actuators in this exact order: {joints}."
+            " Publish exactly 14 finite commands on /joint_commands in that"
+            " order, clamped to each joint's range in robot.xml."
+            f" Onboard sensors streamed in telemetry: {sensors}."
+            f" STAND home pose in the same order (rad): {home}."
+            " Joint-test runs weld the trunk to a stand at STAND height (the free"
+            " joint in robot.xml is locked), so gradeable tracking never fights"
+            " a fall; locomotion runs instead walk free-standing to the flag."
+            " Gravity and foot-sole ground contact stay real, and touching an"
+            " obstacle still fails the run. Control at 50 Hz (dt=0.005)."
+            f" Scene props (body id = description at start position): {props}."
+            " The duck spawns at (0, 0) facing +x, so 'in front' means +x,"
+            " 'behind' means -x, 'left' is +y and 'right' is -y; the arena walls"
+            " sit at ±2 m. Use these body ids for objective.target_body instead"
+            " of coordinates — the arrange UI can move the props, and a body id"
+            " tracks them. Only env_ball is dynamic (it rolls when pushed)."
+        )
+    if robot_id == "ed209":
+        from ..simulator.ed209 import (
+            load_metadata,
+            prop_catalog,
+            stand_joint_targets,
+        )
+
+        metadata = load_metadata()
+        joints = ", ".join(metadata.joints)
+        home = ", ".join(
+            f"{name}={value:+.4f}" for name, value in stand_joint_targets()
+        )
+        props = "; ".join(
+            f"{prop['body']} = {prop['label']} at ({prop['x']:+.2f},"
+            f" {prop['y']:+.2f}){' [dynamic]' if prop['free'] else ''}"
+            for prop in prop_catalog()
+        )
+        return (
+            "Target robot: ED-209-inspired walker prototype"
+            " (already installed as robot.xml — do NOT rewrite it)."
+            f" 6 position actuators in this exact order: {joints}."
+            " Publish exactly 6 finite commands on /joint_commands in that"
+            " order, clamped to each joint's range in robot.xml."
+            " No onboard sensors are streamed; telemetry carries joints,"
+            " base pose, and contacts only."
+            f" STAND home pose in the same order (rad): {home}."
+            " Joint-test runs weld the trunk to a stand raised 0.30 m above"
+            " STAND height (the free joint in robot.xml is locked), so"
+            " gradeable tracking never fights a fall or floor friction."
+            " Gravity and foot-sole ground contact stay real, and touching an"
+            " obstacle still fails the run. Control at 50 Hz (dt=0.002)."
+            f" Scene props (body id = description at start position): {props}."
+            " The robot spawns at (0, 0) facing +x, so 'in front' means +x,"
+            " 'behind' means -x, 'left' is +y and 'right' is -y; the arena walls"
+            " sit at ±2 m. Only env_ball is dynamic (it rolls when pushed)."
+            " This robot runs joint tests only: there is no walking policy,"
+            " no /odom, and no /goal_pose."
+        )
+    return ""
+
+
+def _interface_section(brief: str, robot_id: str | None = None) -> str:
     """Control-contract section for a generation/fix prompt.
 
-    Official-MicroDuck projects get the joint contract plus the dual-mode
-    grading rules (joint tracking + locomotion steering) and never see the
-    legacy 2D paragraph: that mode's scan-based contract does not apply to
-    the duck. Generic projects keep both contracts so the model can author
-    either backend.
+    Bundled-robot projects get the joint contract plus that robot's
+    grading rules (MicroDuck: joint tracking + locomotion steering;
+    ED-209: joint tracking only) and never see the legacy 2D paragraph:
+    that mode's scan-based contract does not apply to them. Generic
+    projects keep both contracts so the model can author either backend.
     """
+    if robot_id == "ed209":
+        return f"{MUJOCO_INTERFACE_BRIEF}\n\n{ED209_GRADING_BRIEF}\n\n{brief}"
     if brief:
         return f"{MUJOCO_INTERFACE_BRIEF}\n\n{MICRODUCK_GRADING_BRIEF}\n\n{brief}"
     return f"{MUJOCO_INTERFACE_BRIEF}\n\n{LEGACY_2D_INTERFACE_BRIEF}"
 
 
-def build_generate_messages(context: GenerationContext) -> list[dict[str, str]]:
-    brief = target_robot_brief(context.existing_files)
-    if brief:
-        # The robot is already installed: the model must output ONLY the
-        # controller. Emitting robot.xml again (tens of thousands of
-        # characters) blows the completion budget and truncates the JSON.
-        closing = (
+def _generate_closing(robot_id: str | None) -> str:
+    """Closing instruction for a generation prompt.
+
+    Installed robots need ONLY the controller: emitting robot.xml again
+    (tens of thousands of characters) blows the completion budget and
+    truncates the JSON.
+    """
+    if robot_id == "ed209":
+        return (
+            "Update controller.py ONLY for this installed robot: output"
+            " exactly ONE file (controller.py). Do NOT output robot.xml,"
+            " robot.urdf, or ros2_control.yaml — they are already installed"
+            " and must not be rewritten. Start from the installed"
+            " controller.py (50 Hz rate-limited joint tracking) and"
+            " adapt it to THIS task: keep what already works and change only"
+            " what the objective needs — do not write a controller from"
+            " scratch. Keep tracking all 6 joints every tick so joint tests"
+            " still pass. Explain your approach in"
+            " summary/expected_behavior and list safety considerations"
+            " explicitly."
+        )
+    if robot_id is not None:
+        return (
             "Update controller.py ONLY for this installed robot: output"
             " exactly ONE file (controller.py). Do NOT output robot.xml,"
             " robot.urdf, or ros2_control.yaml — they are already installed"
@@ -524,16 +608,21 @@ def build_generate_messages(context: GenerationContext) -> list[dict[str, str]]:
             " summary/expected_behavior and list safety considerations"
             " explicitly."
         )
-    else:
-        closing = (
-            "Generate the controller and robot description. Put the main"
-            " node at controller.py. Explain your approach in"
-            " summary/expected_behavior and list safety considerations"
-            " explicitly."
-        )
+    return (
+        "Generate the controller and robot description. Put the main"
+        " node at controller.py. Explain your approach in"
+        " summary/expected_behavior and list safety considerations"
+        " explicitly."
+    )
+
+
+def build_generate_messages(context: GenerationContext) -> list[dict[str, str]]:
+    robot_id = brief_robot_id(context.existing_files)
+    brief = target_robot_brief(context.existing_files)
+    closing = _generate_closing(robot_id)
     user = (
         f"Task:\n{truncate_text(context.task_description, 4000)}\n\n"
-        f"{_interface_section(brief)}\n\n"
+        f"{_interface_section(brief, robot_id)}\n\n"
         f"{ROBOT_PACKAGE_BRIEF}\n\n"
         f"Existing project files:\n"
         f"{_render_files(context.existing_files)}\n\n"
@@ -546,10 +635,11 @@ def build_generate_messages(context: GenerationContext) -> list[dict[str, str]]:
 
 
 def build_fix_messages(evidence: FixEvidence) -> list[dict[str, str]]:
+    robot_id = brief_robot_id(evidence.controller_files)
     brief = target_robot_brief(evidence.controller_files)
     user = (
         f"Task:\n{truncate_text(evidence.task_description, 4000)}\n\n"
-        f"{_interface_section(brief)}\n\n"
+        f"{_interface_section(brief, robot_id)}\n\n"
         f"{ROBOT_PACKAGE_BRIEF}\n\n"
         f"Current controller files:\n"
         f"{_render_files(evidence.controller_files)}\n\n"
@@ -683,7 +773,7 @@ def _require_objective_entry(objective: Any, index: int) -> None:
                 f"Model generation output set {label}.target_body for a"
                 f" {objective.type} run; target_body only applies to go_to."
             )
-        from ..simulator.microduck import prop_body_names
+        from ..simulator.scene import prop_body_names
 
         known = prop_body_names()
         if objective.target_body not in known:

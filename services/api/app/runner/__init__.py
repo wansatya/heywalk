@@ -44,6 +44,10 @@ class RunnerContext:
     emit_telemetry: Callable[[dict[str, Any]], Awaitable[None]]
     cancel_event: asyncio.Event = field(default_factory=asyncio.Event)
     estop_event: asyncio.Event = field(default_factory=asyncio.Event)
+    #: Sequence folder holding binary project assets (meshes, textures) that
+    #: the text-only project file store does not mirror. Staging copies them
+    #: into the runner workspace so a generated MJCF resolves its meshes.
+    asset_source_dir: str | None = None
 
 
 @dataclass

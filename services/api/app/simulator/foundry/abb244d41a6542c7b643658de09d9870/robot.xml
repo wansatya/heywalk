@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<!-- HeyWalk Foundry robot id: abb244d41a6542c7b643658de09d9870 -->
+
+<mujoco model="tes">
+  <!-- Simulation contract copied from the official MicroDuck model (https://github.com/pollen-robotics/microduck_rl, bae39f5900b318f7e87fc485c30a31213cfa14eb; Apache-2.0 MJCF). Meshes are generated from the user's reference images.-->
+  <compiler angle="radian" coordinate="local" meshdir="." inertiafromgeom="false" autolimits="true"/>
+  <option timestep="0.005" integrator="implicitfast" cone="elliptic" impratio="10" gravity="0 0 -9.81"/>
+  <size njmax="500" nconmax="200"/>
+  <asset>
+    <mesh name="leg_1_visual" file="assets/visual/leg_1.obj"/>
+    <mesh name="leg_1_collision" file="assets/collision/leg_1.stl"/>
+    <mesh name="leg_2_visual" file="assets/visual/leg_2.obj"/>
+    <mesh name="leg_2_collision" file="assets/collision/leg_2.stl"/>
+    <mesh name="head_visual" file="assets/visual/head.obj"/>
+    <mesh name="head_collision" file="assets/collision/head.stl"/>
+  </asset>
+  <default>
+    <geom friction="0.8 0.02 0.001" condim="3"/>
+    <default class="foundry_actuator">
+      <joint damping="0.053" frictionloss="0.0048" armature="0.0018" limited="true"/>
+      <position kp="80" kv="2"/>
+    </default>
+  </default>
+  <worldbody>
+    <geom name="floor" type="plane" size="4 4 0.1" rgba="0.78 0.76 0.72 1" friction="0.9 0.02 0.001"/>
+    <light name="key_light" pos="0 0 3" dir="0 0 -1" directional="true" diffuse="0.8 0.8 0.8"/>
+    <body name="leg_1" pos="0.032626 0 0.05252">
+      <inertial pos="0 0 0" mass="0.071938" diaginertia="8.029e-05 0.00011291 6.092e-05"/>
+      <freejoint name="leg_1_free"/>
+      <site name="imu" pos="0 0 0"/>
+      <geom name="leg_1_visual_geom" type="mesh" mesh="leg_1_visual" contype="0" conaffinity="0" group="1" rgba="0.72 0.74 0.78 1"/>
+      <geom name="leg_1_collision_geom" type="mesh" mesh="leg_1_collision" contype="1" conaffinity="1" group="3" rgba="0 0 0 0" friction="0.8 0.02 0.001" condim="3"/>
+      <body name="leg_2" pos="-0.06366 0 0.00557">
+        <inertial pos="0 0 0" mass="0.052922" diaginertia="3.784e-05 6.599e-05 4.572e-05"/>
+        <joint name="leg_2_joint" type="hinge" axis="1 0 0" pos="0 0 0.0405835" class="foundry_actuator" range="-1 1" limited="true"/>
+        <geom name="leg_2_visual_geom" type="mesh" mesh="leg_2_visual" contype="0" conaffinity="0" group="1" rgba="0.72 0.74 0.78 1"/>
+        <geom name="leg_2_collision_geom" type="mesh" mesh="leg_2_collision" contype="1" conaffinity="1" group="3" rgba="0 0 0 0" friction="0.8 0.02 0.001" condim="3"/>
+      </body>
+      <body name="head" pos="-0.034615 0 0.222812">
+        <inertial pos="0 0 0" mass="0.05" diaginertia="1.321e-05 9.754e-05 9.046e-05"/>
+        <joint name="head_joint" type="hinge" axis="0 0 1" pos="0 0 0.0246685" class="foundry_actuator" range="-0.785 0.785" limited="true"/>
+        <geom name="head_visual_geom" type="mesh" mesh="head_visual" contype="0" conaffinity="0" group="1" rgba="0.72 0.74 0.78 1"/>
+        <geom name="head_collision_geom" type="mesh" mesh="head_collision" contype="1" conaffinity="1" group="3" rgba="0 0 0 0" friction="0.8 0.02 0.001" condim="3"/>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude body1="leg_1" body2="leg_2"/>
+    <exclude body1="leg_1" body2="head"/>
+  </contact>
+  <actuator>
+    <position name="leg_2_motor" joint="leg_2_joint" class="foundry_actuator" kp="60" kv="2" gear="1" ctrlrange="-1 1" forcerange="-20 20"/>
+    <position name="head_motor" joint="head_joint" class="foundry_actuator" kp="60" kv="2" gear="1" ctrlrange="-0.785 0.785" forcerange="-20 20"/>
+  </actuator>
+  <sensor>
+    <jointpos joint="leg_2_joint" name="leg_2_joint_pos"/>
+    <jointpos joint="head_joint" name="head_joint_pos"/>
+    <framequat name="orientation" objtype="site" objname="imu"/>
+    <gyro name="angular-velocity" site="imu"/>
+    <gyro name="imu_ang_vel" site="imu"/>
+    <velocimeter name="imu_lin_vel" site="imu"/>
+    <accelerometer name="imu_accel" site="imu"/>
+    <subtreeangmom name="root_angmom" body="leg_1"/>
+  </sensor>
+  <keyframe>
+    <key name="STAND" qpos="0.032626 0 0.05252 1 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>

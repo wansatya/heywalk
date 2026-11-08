@@ -234,6 +234,7 @@ class MujocoEngine:
         self.collision = False
         self.fallen = False
         self.trunk_z = 0.0
+        self._apply_fix_base_lift()
         self.reset()
 
     # ---- construction helpers ----
@@ -297,17 +298,21 @@ class MujocoEngine:
         trunk body's own free joint explicitly. A welded test stand has none
         and reports FK poses instead of a prop's position.
         """
-        from .microduck.model import TRUNK_BODY
+        from .robot_catalog import TRUNK_BODIES
 
-        trunk = mujoco.mj_name2id(
-            self.model, mujoco.mjtObj.mjOBJ_BODY, TRUNK_BODY
-        )
+        trunks = {
+            mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_BODY, name
+            )
+            for name in TRUNK_BODIES
+        }
+        trunks.discard(-1)
         for joint_id in range(self.model.njnt):
             if int(self.model.jnt_type[joint_id]) != int(
                 mujoco.mjtJoint.mjJNT_FREE
             ):
                 continue
-            if trunk >= 0 and int(self.model.jnt_bodyid[joint_id]) != trunk:
+            if trunks and int(self.model.jnt_bodyid[joint_id]) not in trunks:
                 continue
             return (
                 int(self.model.jnt_qposadr[joint_id]),
@@ -317,7 +322,7 @@ class MujocoEngine:
 
     def _resolve_env_free_qpos(self) -> tuple[tuple[int, int], ...]:
         """(body id, qpos address) of free environment props (the ball)."""
-        from .microduck.model import ENV_BODY_PREFIX
+        from .robot_catalog import ENV_BODY_PREFIX
 
         found: list[tuple[int, int]] = []
         for joint_id in range(self.model.njnt):
@@ -347,7 +352,7 @@ class MujocoEngine:
         touches still count: only one side of the contact needs to be a
         robot body (see ``_update_contacts``).
         """
-        from .microduck.model import ENV_BODY_PREFIX
+        from .robot_catalog import ENV_BODY_PREFIX
 
         robot: set[int] = set()
         for body_id in range(1, self.model.nbody):
@@ -362,15 +367,18 @@ class MujocoEngine:
         return frozenset(robot)
 
     def _resolve_root_body(self) -> int:
-        """Trunk body id for the fall detector (official trunk by name)."""
-        from .microduck.model import TRUNK_BODY
+        """Trunk body id for the fall detector (registry trunks by name)."""
+        from .robot_catalog import TRUNK_BODIES
 
         if self.model.nbody <= 1:
             return 0
-        trunk = mujoco.mj_name2id(
-            self.model, mujoco.mjtObj.mjOBJ_BODY, TRUNK_BODY
-        )
-        return int(trunk) if trunk >= 0 else 1
+        for name in TRUNK_BODIES:
+            trunk = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_BODY, name
+            )
+            if trunk >= 0:
+                return int(trunk)
+        return 1
 
     def _apply_env_layout(self) -> tuple[str, ...]:
         """Move static environment bodies to their arranged floor spots.
@@ -381,7 +389,7 @@ class MujocoEngine:
         real robot bodies are rejected, since moving them would silently
         break joint/actuator bindings.
         """
-        from .microduck.model import ENV_BODY_PREFIX, WALL_BODIES
+        from .robot_catalog import ENV_BODY_PREFIX, WALL_BODIES
 
         skipped: list[str] = []
         for name, x, y in self.scenario.env_layout:
@@ -404,6 +412,16 @@ class MujocoEngine:
             self.model.body_pos[body_id][0] = x
             self.model.body_pos[body_id][1] = y
         return tuple(skipped)
+
+    def _apply_fix_base_lift(self) -> None:
+        """Raise the welded stand so heavy legs swing free of the floor.
+
+        Runs once at construction; ``reset()`` only touches qpos/ctrl, so
+        the lift survives every test reset. Ignored for free-standing runs.
+        """
+        lift = float(getattr(self.scenario, "fix_base_lift", 0.0) or 0.0)
+        if lift and self.base_fixed:
+            self.model.body_pos[self._root_body][2] += lift
 
     def _load_welded_model(self, xml_text: str) -> mujoco.MjModel:
         """Compile the welded XML without writing beside the model.

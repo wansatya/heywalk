@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,7 @@ def prepare_workspace(
     staging: Path,
     controller_files: list[dict[str, str]],
     world_config: dict[str, Any],
+    asset_source_dir: str | Path | None = None,
 ) -> tuple[Path, Path, str]:
     """Write controller files + world config; return (workspace, out, entry).
 
@@ -80,42 +82,73 @@ def prepare_workspace(
                 "No Python controller file found; expected 'controller.py'."
             )
     stage_bundled_assets(workspace)
+    if asset_source_dir is not None:
+        stage_project_assets(workspace, Path(asset_source_dir))
     return workspace, out_dir, entry
+
+
+def stage_project_assets(workspace: Path, source_dir: Path) -> int:
+    """Copy binary project assets the text-only file store does not mirror.
+
+    Foundry-generated robots reference ``assets/...`` meshes. Text files are
+    already staged from the validated controller list, so existing targets are
+    never overwritten (the database copy is authoritative). Symlinks are
+    skipped and every target is confined to the workspace.
+    """
+    source = source_dir.expanduser().resolve()
+    if not source.is_dir():
+        return 0
+    workspace_resolved = workspace.resolve()
+    copied = 0
+    for path in sorted(source.rglob("*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        relative = path.relative_to(source)
+        if any(part.startswith(".") or part == "__pycache__" for part in relative.parts):
+            continue
+        target = (workspace / relative).resolve()
+        if target != workspace_resolved and workspace_resolved not in target.parents:
+            continue
+        if target.exists():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target)
+        copied += 1
+    return copied
 
 
 def stage_bundled_assets(workspace: Path) -> int:
     """Copy platform-bundled mesh assets a staged robot references.
 
-    Generated robot descriptions are single-file MJCF; the official MicroDuck
-    composition additionally references ``assets/*.stl`` meshes that live in
-    the platform bundle (binary files cannot be project files). When a staged
-    MJCF references that directory, copy the missing meshes from the bundle
-    so MuJoCo resolves them in both development and production. Returns the
-    number of files copied.
+    Generated robot descriptions are single-file MJCF; bundled mesh-backed
+    robots (MicroDuck, ED-209) additionally reference ``assets/*.stl``
+    meshes that live in the platform bundle (binary files cannot be
+    project files). Each staged MJCF is matched to its robot by
+    composition marker and the missing meshes are copied from that
+    robot's bundle so MuJoCo resolves them in both development and
+    production. Returns the number of files copied.
     """
-    from ..simulator.microduck import ASSETS_DIR, is_composed_scene
+    from ..simulator.robot_catalog import starter_robots
 
-    needs_assets = False
+    texts: list[str] = []
     for path in sorted(workspace.rglob("*.xml")):
         try:
-            text = path.read_text(encoding="utf-8")
+            texts.append(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError):
             continue
-        if (
-            is_composed_scene(text)
-            or f"{ASSETS_DIR}/" in text
-            or f'meshdir="{ASSETS_DIR}"' in text
-        ):
-            needs_assets = True
-            break
-    if not needs_assets:
-        return 0
-    from ..simulator.microduck import stage_assets
-
-    try:
-        return stage_assets(workspace)
-    except Exception as exc:
-        raise ValueError(f"Could not stage MicroDuck mesh assets: {exc}.")
+    staged = 0
+    for robot in starter_robots():
+        if robot.models is None or robot.marker is None:
+            continue
+        if not any(robot.marker in text[:4096] for text in texts):
+            continue
+        try:
+            staged += robot.models.stage_assets(workspace)
+        except Exception as exc:
+            raise ValueError(
+                f"Could not stage {robot.name} mesh assets: {exc}."
+            )
+    return staged
 
 
 def scrub_env(env: dict[str, str]) -> dict[str, str]:

@@ -21,7 +21,14 @@ const STREAM_LABELS: Record<StreamConnectionState, { label: string; className: s
 
 export function SimControls() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId)
-  const taskDefined = useWorkspaceStore((s) => s.taskDraft.trim().length > 0)
+  const isFoundryProject = useWorkspaceStore((s) => s.isFoundryProject)
+  const installedRobotId = useWorkspaceStore((s) => s.installedRobotId)
+  const hasTask = useWorkspaceStore((s) => s.taskDraft.trim().length > 0)
+  // Foundry robots are graded by the joint-test suite, so they do not need a
+  // natural-language task the way generated walk controllers do. A Foundry
+  // robot installed into an ordinary sequence keeps that behavior.
+  const isFoundryRobot = isFoundryProject || (installedRobotId?.startsWith('foundry:') ?? false)
+  const taskDefined = isFoundryRobot || hasTask
   const hasControllerFile = useWorkspaceStore((s) => s.files.some((f) => f.path === CONTROLLER_PATH))
   const controllerBlank = useWorkspaceStore((s) => s.controllerBlank)
   const saveState = useWorkspaceStore((s) => s.saveState)
@@ -97,7 +104,10 @@ export function SimControls() {
     void runWithSave(() =>
       startRun(activeProjectId, {
         layout: nextLayout,
-        locomotion: true,
+        // Foundry robots are custom rigs: run the position-actuated joint
+        // tests on a fixed stand instead of the bundled walking policy.
+        locomotion: !isFoundryRobot,
+        ...(isFoundryRobot ? { fixBase: true } : {}),
         objectives,
       }),
     )

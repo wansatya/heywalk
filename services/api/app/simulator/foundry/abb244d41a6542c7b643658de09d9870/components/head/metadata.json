@@ -1,0 +1,27 @@
+{
+  "component_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0",
+  "name": "head",
+  "dimensions": [
+    0.144828,
+    0.027135,
+    0.049337
+  ],
+  "unit": "meter",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "reconstruction_method": "outline_extrusion_v1",
+  "confidence": 0.462,
+  "estimated": true,
+  "source_box": [
+    303,
+    26,
+    182,
+    62
+  ],
+  "notes": [
+    "Depth is estimated from the visible mask; hidden surfaces are not reconstructed."
+  ]
+}

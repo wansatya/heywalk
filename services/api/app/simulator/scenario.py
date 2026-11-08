@@ -76,6 +76,11 @@ MUJOCO_DEFAULTS: dict[str, Any] = {
     # before any test can measure anything. Fall physics stays available
     # with fix_base=false.
     "fix_base": False,
+    # Meters to raise the welded root above its declared frame. A light
+    # robot can hang with its feet brushing the floor, but a heavy machine
+    # would fight ground friction on every joint move; lifting the stand
+    # lets its legs swing free. Ignored unless fix_base is true.
+    "fix_base_lift": 0.0,
     # Locomotion runs: the harness drives the vendored upstream walking
     # policy (50 Hz) while the generated controller steers it with /cmd_vel
     # (Twist: forward m/s, yaw rad/s). Default off so joint-test runs are
@@ -450,6 +455,7 @@ class MujocoScenario:
     spawn_yaw: float | None = None
     env_layout: tuple[tuple[str, float, float], ...] = ()
     fix_base: bool = False
+    fix_base_lift: float = 0.0
     locomotion: bool = False
     locomotion_twist: tuple[float, float, float] = (0.2, 0.0, 0.0)
     locomotion_duration_s: float = 20.0
@@ -512,6 +518,8 @@ class MujocoScenario:
             )
         _positive(self.locomotion_duration_s, "locomotion_duration_s")
         _positive(self.locomotion_goal_radius, "locomotion_goal_radius")
+        if not math.isfinite(self.fix_base_lift) or self.fix_base_lift < 0:
+            raise ScenarioError("fix_base_lift must be non-negative.")
         if not isinstance(self.objective, RunObjective):
             raise ScenarioError("objective must be a RunObjective.")
         for index, phase in enumerate(self.phases):
@@ -594,6 +602,7 @@ class MujocoScenario:
                 for name, x, y in self.env_layout
             ],
             "fix_base": self.fix_base,
+            "fix_base_lift": self.fix_base_lift,
             "locomotion": self.locomotion,
             "locomotion_twist": list(self.locomotion_twist),
             "locomotion_duration_s": self.locomotion_duration_s,
@@ -736,6 +745,12 @@ class MujocoScenario:
             env_layout=tuple(layout),
             fix_base=bool(
                 data.get("fix_base", MUJOCO_DEFAULTS["fix_base"])
+            ),
+            fix_base_lift=_finite(
+                data.get(
+                    "fix_base_lift", MUJOCO_DEFAULTS["fix_base_lift"]
+                ),
+                "fix_base_lift",
             ),
             locomotion=bool(
                 data.get("locomotion", MUJOCO_DEFAULTS["locomotion"])

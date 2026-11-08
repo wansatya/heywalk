@@ -18,6 +18,7 @@ def settings(tmp_path):
         muse_model="muse-spark-1.3",
         model_timeout_s=5.0,
         cors_origins=("*",),
+        foundry_root=str(tmp_path / "foundry_robots"),
     )
 
 

@@ -12,8 +12,12 @@ cd services/api
 uv venv .venv  # first time only
 uv pip install --python .venv/bin/python -e '.[test]'
 cp ../../.env.example ../../.env  # set MODEL_API_KEY server-side
-HEYWALK_DB=./heywalk.db .venv/bin/uvicorn app.main:app --port 8000
+.venv/bin/uvicorn app.main:app --port 8000
 ```
+
+The backend loads the repo `.env` automatically; an explicit environment
+variable still wins when both are set (`HEYWALK_NO_DOTENV=1` disables the
+file lookup).
 
 The frontend (`apps/web`) proxies same-origin `/api` calls to port 8000 in dev.
 

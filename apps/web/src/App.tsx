@@ -1,14 +1,17 @@
 import { useEffect } from 'react'
-import { Bot, Download, Github, Linkedin } from 'lucide-react'
+import { Bot, Download, Github, Hammer, Linkedin } from 'lucide-react'
 import { exportProjectUrl } from './api/client'
 import { useWorkspaceStore } from './stores/workspace'
 import { useExperimentStore } from './stores/experiment'
+import { useFoundryStore } from './stores/foundry'
 import { ExperimentBar } from './features/projects/ExperimentBar'
 import { FileExplorer } from './features/projects/FileExplorer'
+import { RobotSwitcherModal } from './features/robots/RobotSwitcherModal'
 import { RunHistory } from './features/projects/RunHistory'
 import { TaskInput } from './features/projects/TaskInput'
 import { WorkspaceCenter } from './features/workspace/WorkspaceCenter'
 import { DiagnosticsPanel } from './features/diagnostics/DiagnosticsPanel'
+import { FoundryPage } from './features/foundry/FoundryPage'
 import { clsx } from './components/clsx'
 
 function BackendBanner() {
@@ -42,6 +45,8 @@ export default function App() {
   const activeProjectId = useWorkspaceStore((s) => s.activeProjectId)
   const projects = useWorkspaceStore((s) => s.projects)
   const backendOnline = useExperimentStore((s) => s.backendOnline)
+  const foundryOpen = useFoundryStore((s) => s.open)
+  const setFoundryOpen = useFoundryStore((s) => s.setOpen)
 
   useEffect(() => {
     const workspace = useWorkspaceStore.getState()
@@ -74,6 +79,27 @@ export default function App() {
           Meta Global AI Developer Hackathon 2026
         </span>
         <div className="ml-auto flex items-center gap-3 xl:ml-0 xl:justify-self-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (foundryOpen) {
+                setFoundryOpen(false)
+                void useWorkspaceStore.getState().refreshProjects()
+              } else {
+                setFoundryOpen(true)
+              }
+            }}
+            className={clsx(
+              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm transition-all active:scale-[0.98]',
+              foundryOpen
+                ? 'border-amber-300 bg-amber-100 text-amber-800'
+                : 'border-border-subtle bg-white text-stone-600 hover:bg-stone-50 hover:text-stone-900',
+            )}
+            title={foundryOpen ? 'Back to the IDE' : 'Generate a robot from a reference image'}
+          >
+            <Hammer size={14} />
+            {foundryOpen ? 'Back to IDE' : 'Robot Foundry'}
+          </button>
           <span
             className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-600"
             title={backendOnline === false ? 'Backend unreachable' : 'Backend status'}
@@ -106,6 +132,9 @@ export default function App() {
 
       <BackendBanner />
 
+      {foundryOpen ? (
+        <FoundryPage />
+      ) : (
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-3.5 overflow-y-auto p-3.5 xl:grid-cols-[320px_minmax(0,1fr)_420px] xl:overflow-hidden">
         <div className="flex min-h-[420px] min-w-0 flex-col gap-3.5 xl:min-h-0 xl:overflow-hidden">
           <ExperimentBar />
@@ -145,6 +174,9 @@ export default function App() {
           <DiagnosticsPanel />
         </div>
       </main>
+      )}
+
+      <RobotSwitcherModal />
     </div>
   )
 }

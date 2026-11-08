@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Move, RotateCcw } from 'lucide-react'
 import { useExperimentStore } from '../../stores/experiment'
+import { useFoundryStore } from '../../stores/foundry'
 import { CONTROLLER_PATH, DEFAULT_ROBOT_ID, useWorkspaceStore } from '../../stores/workspace'
 import { robotAssetBundleUrl, robotAssetUrl } from '../../api/client'
 import { isDefaultLayout, isTerminalStatus } from '../../api/types'
 import { RobotScene } from './three/robotScene'
 import { clearSavedCamera } from './three/cameraState'
 import { ErrorNotice, LoadingRow } from '../../components/Panel'
+import { FoundryViewport } from '../foundry/FoundryViewport'
 
 /** Short badge labels per bundled robot id. */
 const ROBOT_SHORT_NAMES: Record<string, string> = {
@@ -45,11 +47,33 @@ export function RobotViewport() {
   const refreshRobotModel = useWorkspaceStore((s) => s.refreshRobotModel)
   const installedRobotId = useWorkspaceStore((s) => s.installedRobotId)
   const setRobotModalOpen = useWorkspaceStore((s) => s.setRobotModalOpen)
-  const robotId = installedRobotId ?? DEFAULT_ROBOT_ID
+  const isFoundryProject = useWorkspaceStore((s) => s.isFoundryProject)
+  const foundryProjectId = useWorkspaceStore((s) => s.foundryProjectId)
+  const foundryDetail = useFoundryStore((s) => s.detail)
+  const selectFoundryProject = useFoundryStore((s) => s.selectProject)
+  const foundryRobotId = foundryProjectId ? `foundry:${foundryProjectId}` : null
+  const robotId = installedRobotId ?? foundryRobotId ?? DEFAULT_ROBOT_ID
+  // The linked Foundry sequence previews its reconstructed GLB parts. If the
+  // user switches that sequence (or any other sequence) to a different
+  // catalog robot, fall back to the normal mesh-backed viewport.
+  const showFoundryViewport =
+    isFoundryProject && (!installedRobotId || installedRobotId === foundryRobotId)
 
   useEffect(() => {
-    void refreshRobotModel(robotId)
-  }, [refreshRobotModel, robotId])
+    if (!showFoundryViewport) void refreshRobotModel(robotId)
+  }, [showFoundryViewport, refreshRobotModel, robotId])
+
+  // A Foundry sequence selected directly from the IDE has no bundled model;
+  // load its generated parts so the preview is the actual robot, not MicroDuck.
+  useEffect(() => {
+    if (
+      showFoundryViewport &&
+      foundryProjectId &&
+      foundryDetail?.project.id !== foundryProjectId
+    ) {
+      void selectFoundryProject(foundryProjectId)
+    }
+  }, [showFoundryViewport, foundryProjectId, foundryDetail?.project.id, selectFoundryProject])
 
   const resetToDefaultView = () => {
     clearSavedCamera('robot')
@@ -68,7 +92,11 @@ export function RobotViewport() {
   const bodies = latest?.bodies ?? null
   const joints = latest?.joints ?? []
   const model = robotModel.data ?? null
-  const shortName = model ? (ROBOT_SHORT_NAMES[model.robot_id] ?? model.robot_id) : 'Robot'
+  const shortName = model
+    ? model.robot_id.startsWith('foundry:')
+      ? 'Foundry robot'
+      : (ROBOT_SHORT_NAMES[model.robot_id] ?? model.robot_id)
+    : 'Robot'
 
   const modelBodies = model ? new Set(model.bodies) : new Set<string>()
   const livePoses = bodies?.filter((pose) => modelBodies.has(pose.body)) ?? []
@@ -84,6 +112,14 @@ export function RobotViewport() {
   // orbits until there is real work to watch. Live poses, a streaming run,
   // and arrange dragging all take over the camera instead.
   const idleSpin = controllerMissing && !isLive && !runActive && !arrange
+
+  // A robot switch swaps the model: reset mesh-load state so the new
+  // robot's progress/errors show instead of the previous robot's.
+  useEffect(() => {
+    setLoadError(null)
+    setLoadProgress(null)
+    setMeshesReady(false)
+  }, [model])
 
   useEffect(() => {
     const container = containerRef.current
@@ -146,6 +182,48 @@ export function RobotViewport() {
   useEffect(() => {
     if (runActive && arrange) setArrange(false)
   }, [runActive, arrange])
+
+  if (showFoundryViewport) {
+    const foundryComponents =
+      foundryDetail?.project.id === foundryProjectId ? foundryDetail.components : []
+    const foundryJoints =
+      foundryDetail?.project.id === foundryProjectId ? foundryDetail.joints : []
+    if (foundryDetail?.project.id !== foundryProjectId) {
+      return (
+        <div className="flex h-full w-full items-center justify-center p-3">
+          <LoadingRow label="Loading generated robot…" />
+        </div>
+      )
+    }
+    return (
+      <div className="relative flex h-full w-full flex-col">
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+          <span className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-white shadow-md">
+            Foundry robot · joint-test mode
+          </span>
+          <span className="rounded-lg border border-border-subtle/60 bg-white/85 px-2.5 py-1 font-mono text-[11px] text-stone-500 shadow-md backdrop-blur">
+            {foundryComponents.length} generated parts
+          </span>
+        </div>
+        {foundryComponents.length > 0 ? (
+          <FoundryViewport
+            components={foundryComponents}
+            joints={foundryJoints}
+            selectedId={null}
+            onSelect={() => undefined}
+            className="h-full w-full"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-6 text-center">
+            <p className="max-w-xs text-xs leading-relaxed text-stone-500">
+              This sequence is linked to a Foundry project, but it has no reconstructed parts yet.
+              Open Robot Foundry and run the 3D stage.
+            </p>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (robotModel.status === 'loading' && !model) {
     return (

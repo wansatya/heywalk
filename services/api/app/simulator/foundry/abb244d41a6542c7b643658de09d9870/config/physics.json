@@ -1,0 +1,62 @@
+[
+  {
+    "component_id": "4ff9f17f02464fed8b39f25995ca0887",
+    "name": "leg_1",
+    "physics": {
+      "mass_kg": 0.071938,
+      "inertia": [
+        8.029e-05,
+        0.00011291,
+        6.092e-05
+      ],
+      "center_of_mass": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "friction": 0.8,
+      "estimated": true,
+      "note": "Estimated from visible geometry and an assumed density; not a measured physical property."
+    }
+  },
+  {
+    "component_id": "dbadc28dd11e491883bc38cd1e65c1d3",
+    "name": "leg_2",
+    "physics": {
+      "mass_kg": 0.052922,
+      "inertia": [
+        3.784e-05,
+        6.599e-05,
+        4.572e-05
+      ],
+      "center_of_mass": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "friction": 0.8,
+      "estimated": true,
+      "note": "Estimated from visible geometry and an assumed density; not a measured physical property."
+    }
+  },
+  {
+    "component_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0",
+    "name": "head",
+    "physics": {
+      "mass_kg": 0.05,
+      "inertia": [
+        1.321e-05,
+        9.754e-05,
+        9.046e-05
+      ],
+      "center_of_mass": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "friction": 0.8,
+      "estimated": true,
+      "note": "Estimated from visible geometry and an assumed density; not a measured physical property."
+    }
+  }
+]

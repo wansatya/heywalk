@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!-- HeyWalk test world. Load robot.xml directly for the joint-test scenario. -->
+<mujoco model="foundry_test_world">
+  <include file="../robot.xml"/>
+  <option timestep="0.005"/>
+</mujoco>

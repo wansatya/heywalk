@@ -66,6 +66,8 @@ export function ControllerEditor() {
   const diffBase = useWorkspaceStore((s) => s.diffBase)
   const importSample = useWorkspaceStore((s) => s.importSample)
   const sampleState = useWorkspaceStore((s) => s.sampleState)
+  const installedRobotId = useWorkspaceStore((s) => s.installedRobotId)
+  const sampleName = installedRobotId === 'ed209' ? 'joint-tracking' : 'walk-to-flag'
 
   const activeRunId = useExperimentStore((s) => s.activeRunId)
   const runDetail = useExperimentStore((s) => s.runDetail)
@@ -128,8 +130,10 @@ export function ControllerEditor() {
               variant={sampleArmed ? 'danger' : undefined}
               title={
                 sampleArmed
-                  ? 'Click again to overwrite controller.py with the walk-to-flag sample script'
-                  : 'Write the walk-to-flag sample script (resets grading to the flag)'
+                  ? `Click again to overwrite controller.py with the ${sampleName} sample script`
+                  : installedRobotId === 'ed209'
+                    ? 'Write the joint-tracking sample script for this robot'
+                    : 'Write the walk-to-flag sample script (resets grading to the flag)'
               }
             >
               <FileDown size={13} />
@@ -155,7 +159,7 @@ export function ControllerEditor() {
         )}
         {isController && editorBlank && filesState !== 'loading' && (
           <p className="shrink-0 border-b border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-medium text-sky-900">
-            controller.py is empty — import the walk-to-flag sample above, or describe a new
+            controller.py is empty — import the {sampleName} sample above, or describe a new
             objective in Task and press Generate.
           </p>
         )}

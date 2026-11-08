@@ -114,6 +114,10 @@ export interface StarterRobot {
   model_path: string
   joints: RobotJoint[]
   tests: PlannedTest[]
+  /** `bundled` platform robots vs `foundry` generated robots. */
+  source?: 'bundled' | 'foundry' | string
+  foundry_id?: string | null
+  thumbnail_asset_url?: string | null
 }
 
 export interface RunObjective {
@@ -242,7 +246,7 @@ export interface BodyPose {
 }
 
 /** One visual mesh placement on a MicroDuck body (from the official MJCF). */
-export interface MicroduckVisualGeom {
+export interface RobotVisualGeom {
   body: string
   mesh: string
   file: string
@@ -252,7 +256,7 @@ export interface MicroduckVisualGeom {
 }
 
 /** One primitive geom of a composed-environment body (MuJoCo units). */
-export interface MicroduckEnvGeom {
+export interface RobotEnvGeom {
   name: string
   type: 'box' | 'sphere' | 'cylinder'
   size: number[]
@@ -263,14 +267,15 @@ export interface MicroduckEnvGeom {
 }
 
 /** One static environment body: obstacle crate, ball, or goal flag. */
-export interface MicroduckEnvBody {
+export interface RobotEnvBody {
   body: string
   pos: [number, number, number]
-  geoms: MicroduckEnvGeom[]
+  geoms: RobotEnvGeom[]
 }
 
-/** Official MicroDuck model metadata served for the UI + 3D renderer. */
-export interface MicroduckModel {
+/** Bundled-robot model metadata served for the UI + 3D renderer. */
+export interface RobotModel {
+  robot_id: string
   joints: string[]
   actuators: string[]
   sensors: string[]
@@ -285,11 +290,11 @@ export interface MicroduckModel {
   license: string
   hierarchy: Array<{ body: string | null; parent: string | null }>
   /** Mesh placements: 70 entries attaching 38 STLs to 15 bodies. */
-  visual_geoms: MicroduckVisualGeom[]
+  visual_geoms: RobotVisualGeom[]
   /** STAND keyframe world poses for the no-telemetry preview. */
   default_poses: BodyPose[]
   /** Obstacle crates, ball, and goal flag of the composed scene. */
-  environment: MicroduckEnvBody[]
+  environment: RobotEnvBody[]
   assets_ok: boolean
   missing_assets: string[]
   error?: string
@@ -359,7 +364,7 @@ export interface MujocoWorldConfig {
   model_path: string
   urdf_path: string
   ros2_control_path: string
-  /** Arrange-mode duck spawn (floor x/y + facing yaw), or null for STAND. */
+  /** Arrange-mode robot spawn (floor x/y + facing yaw), or null for STAND. */
   spawn_xy?: [number, number] | null
   spawn_yaw?: number | null
   /** Arrange-mode prop floor spots, keyed by env body name. */
@@ -374,23 +379,23 @@ export interface MujocoWorldConfig {
   objective?: RunObjective | null
 }
 
-/** Duck spawn pose on the floor plane (MuJoCo coords, radians). */
-export interface DuckSpawn {
+/** Robot spawn pose on the floor plane (MuJoCo coords, radians). */
+export interface RobotSpawn {
   x: number
   y: number
   yaw: number
 }
 
-/** Arrange-mode scene layout for the next run (null duck = STAND spawn). */
+/** Arrange-mode scene layout for the next run (null robot = STAND spawn). */
 export interface SimLayout {
-  duck: DuckSpawn | null
+  robot: RobotSpawn | null
   props: Record<string, { x: number; y: number }>
 }
 
-export const DEFAULT_SIM_LAYOUT: SimLayout = { duck: null, props: {} }
+export const DEFAULT_SIM_LAYOUT: SimLayout = { robot: null, props: {} }
 
 export function isDefaultLayout(layout: SimLayout): boolean {
-  return layout.duck === null && Object.keys(layout.props).length === 0
+  return layout.robot === null && Object.keys(layout.props).length === 0
 }
 
 export type WorldConfig = DiffDriveWorldConfig | MujocoWorldConfig
@@ -455,6 +460,200 @@ export interface ComparisonRunSummary {
 export interface RunComparison {
   baseline: ComparisonRunSummary | null
   current: ComparisonRunSummary
+}
+
+// ---- Robot Foundry --------------------------------------------------------
+
+export type FoundryStatus =
+  | 'DRAFT'
+  | 'ANALYZING'
+  | 'RECONSTRUCTING'
+  | 'ASSEMBLING'
+  | 'GENERATING'
+  | 'VALIDATING'
+  | 'NEEDS_REVIEW'
+  | 'READY'
+  | 'FAILED'
+
+export type FoundryStage =
+  | 'analyze'
+  | 'reconstruct'
+  | 'assemble'
+  | 'generate-mjcf'
+  | 'generate'
+  | 'validate'
+
+export interface FoundryProject {
+  id: string
+  project_id: string
+  name: string
+  description: string
+  category: string
+  status: FoundryStatus | string
+  thumbnail_url: string | null
+  thumbnail_asset_url: string | null
+  metadata: Record<string, unknown>
+  error_message: string | null
+  created_at: string
+  updated_at: string
+  component_count: number
+  joint_count: number
+  actuated_joint_count: number
+  latest_version: number | null
+  validation_status: string | null
+}
+
+export interface FoundryImage {
+  id: string
+  project_id: string
+  filename: string
+  file_url: string
+  asset_url: string
+  image_type: string
+  analysis_status: string
+  width: number | null
+  height: number | null
+  created_at: string
+}
+
+export interface FoundryPhysics {
+  mass_kg?: number
+  inertia?: number[]
+  center_of_mass?: number[]
+  friction?: number
+  estimated?: boolean
+  user_confirmed?: boolean
+  note?: string
+}
+
+export interface FoundryPlacement {
+  body_pos?: number[]
+  joint_pos?: number[]
+  world_center?: number[]
+}
+
+export interface FoundryComponent {
+  id: string
+  project_id: string
+  parent_id: string | null
+  name: string
+  label: string
+  component_type: string
+  mesh_url: string | null
+  collision_mesh_url: string | null
+  visual_asset_url: string | null
+  collision_asset_url: string | null
+  preview_asset_url: string | null
+  metadata: {
+    box?: number[]
+    dimensions?: number[]
+    physics?: FoundryPhysics
+    placement?: FoundryPlacement
+    mesh?: Record<string, unknown>
+    segmentation_method?: string
+    reconstruction_method?: string
+    estimated?: boolean
+    notes?: string[]
+    [key: string]: unknown
+  }
+  confidence: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FoundryJoint {
+  id: string
+  project_id: string
+  component_id: string
+  parent_component_id: string | null
+  name: string
+  joint_type: string
+  axis: number[]
+  position: number[]
+  limits: number[] | null
+  metadata: Record<string, unknown>
+}
+
+export interface FoundryActuator {
+  id: string
+  project_id: string
+  joint_id: string
+  name: string
+  actuator_type: string
+  configuration: {
+    kp?: number
+    kv?: number
+    gear?: number
+    ctrlrange?: number[]
+    forcerange?: number[]
+    estimated?: boolean
+    [key: string]: unknown
+  }
+}
+
+export interface FoundryJob {
+  id: string
+  project_id: string
+  job_type: string
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | string
+  progress: number
+  message: string
+  error_message: string | null
+  result: Record<string, unknown> | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface FoundryVersion {
+  id: string
+  project_id: string
+  version: number
+  mjcf_url: string | null
+  manifest_url: string | null
+  validation: FoundryValidation | null
+  created_at: string
+}
+
+export interface FoundryValidation {
+  status: 'ok' | 'warning' | 'error' | string
+  checks: Record<string, boolean>
+  warnings: string[]
+  errors: string[]
+  details?: Record<string, unknown>
+  validator_version?: string
+  note?: string
+}
+
+export interface FoundryAnalysis {
+  method?: string
+  provider_configured?: boolean
+  provider_error?: string | null
+  note?: string
+  image_size?: number[]
+  foreground_box?: number[]
+  scale_m_per_px?: number
+  analyzed_at?: string
+  [key: string]: unknown
+}
+
+export interface FoundryProjectDetail {
+  project: FoundryProject
+  images: FoundryImage[]
+  components: FoundryComponent[]
+  joints: FoundryJoint[]
+  actuators: FoundryActuator[]
+  jobs: FoundryJob[]
+  versions: FoundryVersion[]
+  analysis: FoundryAnalysis | null
+}
+
+export interface FoundrySimulateResult {
+  foundry_id: string
+  project_id: string
+  version: number | null
+  validation_status: string | null
+  text_files: string[]
+  binary_files: string[]
 }
 
 /** Success counts only with evaluator evidence behind it. */

@@ -1,0 +1,27 @@
+{
+  "component_id": "dbadc28dd11e491883bc38cd1e65c1d3",
+  "name": "leg_2",
+  "dimensions": [
+    0.091512,
+    0.044642,
+    0.081167
+  ],
+  "unit": "meter",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "reconstruction_method": "outline_extrusion_v1",
+  "confidence": 0.647,
+  "estimated": true,
+  "source_box": [
+    300,
+    279,
+    115,
+    102
+  ],
+  "notes": [
+    "Depth is estimated from the visible mask; hidden surfaces are not reconstructed."
+  ]
+}

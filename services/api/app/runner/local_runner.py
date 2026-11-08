@@ -134,7 +134,10 @@ class LocalSubprocessRunner:
             ) as staging_dir:
                 staging = Path(staging_dir)
                 workspace, out_dir, entry = staging_mod.prepare_workspace(
-                    staging, ctx.controller_files, ctx.world_config
+                    staging,
+                    ctx.controller_files,
+                    ctx.world_config,
+                    ctx.asset_source_dir,
                 )
                 estop_file = out_dir / staging_mod.ESTOP_FILENAME
                 return await self._run_harness(

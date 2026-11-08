@@ -8,6 +8,15 @@ dependencies = [
   "uvicorn[standard]>=0.30",
   "pydantic>=2.7",
   "httpx>=0.27",
+  # Robot Foundry: uploads, image processing, mesh generation, and the
+  # short-lived MuJoCo validation subprocess all run in the API image.
+  "python-multipart>=0.0.9",
+  "numpy>=1.26",
+  "Pillow>=10.4",
+  "trimesh>=4.4",
+  "mujoco>=3.2",
+  # Official SAM 3.1 output parser and mask decoder (zero dependencies).
+  "meta-sam-parser>=0.1.0",
 ]
 
 [project.optional-dependencies]

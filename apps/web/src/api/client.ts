@@ -4,8 +4,16 @@
 
 import type {
   FixResult,
+  FoundryActuator,
+  FoundryComponent,
+  FoundryJob,
+  FoundryJoint,
+  FoundryProject,
+  FoundryProjectDetail,
+  FoundrySimulateResult,
+  FoundryStage,
   GenerationResult,
-  MicroduckModel,
+  RobotModel,
   ModelRequest,
   Project,
   ProjectFileContent,
@@ -240,19 +248,26 @@ export function importSampleController(
   })
 }
 
-/** Official MicroDuck model metadata + mesh-asset load status. */
-export function getMicroduckModel(): Promise<MicroduckModel> {
-  return get<MicroduckModel>('/api/robots/microduck/model')
+/** Bundled robot id installed in a project (null = custom rig or none). */
+export function getInstalledRobotId(projectId: string): Promise<string | null> {
+  return get<{ robot_id: string | null }>(`/api/projects/${projectId}/robot`).then(
+    (body) => body.robot_id,
+  )
 }
 
-/** URL of one vendored MicroDuck mesh (STL) for the 3D view. */
-export function microduckAssetUrl(filename: string): string {
-  return `${API_BASE}/api/robots/microduck/assets/${encodeURIComponent(filename)}`
+/** Bundled-robot model metadata + mesh-asset load status. */
+export function getRobotModel(robotId: string): Promise<RobotModel> {
+  return get<RobotModel>(`/api/robots/${encodeURIComponent(robotId)}/model`)
+}
+
+/** URL of one bundled robot mesh (STL) for the 3D view. */
+export function robotAssetUrl(robotId: string, filename: string): string {
+  return `${API_BASE}/api/robots/${encodeURIComponent(robotId)}/assets/${encodeURIComponent(filename)}`
 }
 
 /** URL of the single-response bundle with every mesh the 3D view needs. */
-export function microduckAssetBundleUrl(): string {
-  return `${API_BASE}/api/robots/microduck/assets/bundle`
+export function robotAssetBundleUrl(robotId: string): string {
+  return `${API_BASE}/api/robots/${encodeURIComponent(robotId)}/assets/bundle`
 }
 
 // ---- Runs ----
@@ -325,6 +340,157 @@ export function streamUrl(runId: string): string {
   }
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${window.location.host}/api/runs/${runId}/stream`
+}
+
+// ---- Robot Foundry --------------------------------------------------------
+
+export function listFoundryProjects(): Promise<FoundryProject[]> {
+  return get<FoundryProject[]>('/api/foundry/projects')
+}
+
+export function createFoundryProject(
+  name: string,
+  description: string,
+  category: string,
+): Promise<FoundryProject> {
+  return post<FoundryProject>('/api/foundry/projects', { name, description, category })
+}
+
+export function getFoundryProject(foundryId: string): Promise<FoundryProjectDetail> {
+  return get<FoundryProjectDetail>(`/api/foundry/projects/${foundryId}`)
+}
+
+export function getFoundryProjectForSequence(projectId: string): Promise<FoundryProject> {
+  return get<FoundryProject>(`/api/foundry/by-sequence/${projectId}`)
+}
+
+export function updateFoundryProject(
+  foundryId: string,
+  patch: { name?: string; description?: string; category?: string },
+): Promise<FoundryProject> {
+  return request<FoundryProject>(`/api/foundry/projects/${foundryId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function deleteFoundryProject(
+  foundryId: string,
+): Promise<{ id: string; deleted: boolean }> {
+  return del<{ id: string; deleted: boolean }>(`/api/foundry/projects/${foundryId}`)
+}
+
+/** Multipart upload; the shared JSON helper must not set Content-Type here. */
+async function uploadFoundryImages(
+  foundryId: string,
+  files: File[],
+  imageType: 'reference' | 'detail',
+): Promise<unknown> {
+  const form = new FormData()
+  for (const file of files) form.append('files', file)
+  form.append('image_type', imageType)
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 60_000)
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}/api/foundry/projects/${foundryId}/images`, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    })
+  } catch (err) {
+    window.clearTimeout(timer)
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError('timeout', 'Image upload timed out.')
+    }
+    throw new ApiError('network', `Backend unreachable (${(err as Error).message}).`)
+  }
+  window.clearTimeout(timer)
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    const parsed = parseErrorBody(body, response.status, 'image upload')
+    throw new ApiError('http', parsed.message, response.status, parsed.detail)
+  }
+  return response.json()
+}
+
+export { uploadFoundryImages }
+
+export function createFoundryComponent(
+  foundryId: string,
+  body: {
+    label: string
+    component_type?: string
+    parent_id?: string | null
+    dimensions?: number[]
+    confidence?: number
+  },
+): Promise<FoundryComponent> {
+  return post<FoundryComponent>(`/api/foundry/projects/${foundryId}/components`, body)
+}
+
+export function deleteFoundryComponent(
+  componentId: string,
+): Promise<{ id: string; deleted: boolean }> {
+  return del<{ id: string; deleted: boolean }>(`/api/foundry/components/${componentId}`)
+}
+
+export function updateFoundryComponent(
+  componentId: string,
+  patch: Record<string, unknown>,
+): Promise<FoundryComponent> {
+  return request<FoundryComponent>(`/api/foundry/components/${componentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function updateFoundryJoint(
+  jointId: string,
+  patch: Record<string, unknown>,
+): Promise<FoundryJoint> {
+  return request<FoundryJoint>(`/api/foundry/joints/${jointId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function updateFoundryActuator(
+  actuatorId: string,
+  patch: Record<string, unknown>,
+): Promise<FoundryActuator> {
+  return request<FoundryActuator>(`/api/foundry/actuators/${actuatorId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function getFoundryJob(jobId: string): Promise<FoundryJob> {
+  return get<FoundryJob>(`/api/foundry/jobs/${jobId}`)
+}
+
+export function startFoundryStage(
+  foundryId: string,
+  stage: FoundryStage,
+): Promise<{ job: FoundryJob }> {
+  return post<{ job: FoundryJob }>(`/api/foundry/projects/${foundryId}/${stage}`)
+}
+
+export function simulateFoundryProject(foundryId: string): Promise<FoundrySimulateResult> {
+  return post<FoundrySimulateResult>(`/api/foundry/projects/${foundryId}/simulate`)
+}
+
+export function foundryAssetUrl(foundryId: string, assetPath: string | null | undefined): string | null {
+  if (!assetPath) return null
+  return `${API_BASE}/api/foundry/projects/${foundryId}/assets/${assetPath.replace(/^\/+/, '')}`
+}
+
+export function foundryModelUrl(foundryId: string): string {
+  return `${API_BASE}/api/foundry/projects/${foundryId}/model`
+}
+
+export function foundryExportUrl(foundryId: string): string {
+  return `${API_BASE}/api/foundry/projects/${foundryId}/export`
 }
 
 export function describeApiError(err: unknown): string {

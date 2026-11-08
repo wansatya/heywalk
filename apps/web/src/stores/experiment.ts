@@ -40,10 +40,12 @@ export interface StartRunOptions {
   /** Sim-time budget in seconds, or null for unlimited. */
   timeLimitS?: number | null
   backend?: Backend
-  /** Arrange-mode scene layout (duck spawn + prop spots). */
+  /** Arrange-mode scene layout (robot spawn + prop spots). */
   layout?: SimLayout
   /** Walk to the flag (locomotion) instead of running the joint tests. */
   locomotion?: boolean
+  /** Weld the root to the test stand (Foundry joint tests need this). */
+  fixBase?: boolean
   /** Phase sequence declared by generation (empty = flag default). */
   objectives?: RunObjective[]
 }
@@ -210,9 +212,9 @@ export const useExperimentStore = create<ExperimentState>()(
           const world: Record<string, unknown> = {}
           if (options.backend) world.backend = options.backend
           if (options.timeLimitS !== undefined) world.time_limit = options.timeLimitS
-          if (options.layout?.duck) {
-            world.spawn_xy = [options.layout.duck.x, options.layout.duck.y]
-            world.spawn_yaw = options.layout.duck.yaw
+          if (options.layout?.robot) {
+            world.spawn_xy = [options.layout.robot.x, options.layout.robot.y]
+            world.spawn_yaw = options.layout.robot.yaw
           }
           if (options.layout && Object.keys(options.layout.props).length > 0) {
             world.env_layout = Object.fromEntries(
@@ -220,6 +222,7 @@ export const useExperimentStore = create<ExperimentState>()(
             )
           }
           if (options.locomotion !== undefined) world.locomotion = options.locomotion
+          if (options.fixBase !== undefined) world.fix_base = options.fixBase
           if (options.objectives && options.objectives.length > 0) {
             world.objectives = options.objectives
             // First phase for legacy readers; the runner prefers the list.

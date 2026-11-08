@@ -1,0 +1,52 @@
+{
+  "status": "warning",
+  "checks": {
+    "xml_valid": true,
+    "mesh_files_valid": true,
+    "joint_configuration": true,
+    "inertia_configuration": true,
+    "actuator_configuration": true,
+    "mujoco_compilation": true
+  },
+  "warnings": [
+    "Mass and inertia values are estimates derived from visible geometry; they are not measured physical properties.",
+    "The articulated hierarchy is inferred from the reference image, not from the robot's real mechanism."
+  ],
+  "errors": [],
+  "details": {
+    "mesh_count": 6,
+    "missing_meshes": [],
+    "unreadable_meshes": [],
+    "joints": [
+      {
+        "name": "leg_2_joint",
+        "type": "hinge",
+        "actuator": "leg_2_motor",
+        "lower": -1.0,
+        "upper": 1.0
+      },
+      {
+        "name": "head_joint",
+        "type": "hinge",
+        "actuator": "head_motor",
+        "lower": -0.785,
+        "upper": 0.785
+      }
+    ],
+    "body_count": 3,
+    "geom_count": 6,
+    "inertia_issues": [],
+    "mujoco": {
+      "ok": true,
+      "nbody": 4,
+      "njnt": 3,
+      "ngeom": 7,
+      "nq": 9,
+      "nv": 8,
+      "nu": 2,
+      "nmesh": 6
+    }
+  },
+  "validator_version": "foundry-validation-0.1",
+  "note": "A compiling model is not necessarily physically accurate or dynamically stable. Validation results are kept separate from physical accuracy."
+}

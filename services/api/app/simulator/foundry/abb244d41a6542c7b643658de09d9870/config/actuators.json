@@ -1,0 +1,44 @@
+[
+  {
+    "id": "dbadc28dd11e491883bc38cd1e65c1d3_actuator",
+    "project_id": "abb244d41a6542c7b643658de09d9870",
+    "joint_id": "dbadc28dd11e491883bc38cd1e65c1d3_joint",
+    "name": "leg_2_motor",
+    "actuator_type": "position",
+    "configuration": {
+      "kp": 60.0,
+      "kv": 2.0,
+      "ctrlrange": [
+        -1.0,
+        1.0
+      ],
+      "forcerange": [
+        -20.0,
+        20.0
+      ],
+      "gear": 1.0,
+      "estimated": true
+    }
+  },
+  {
+    "id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_actuator",
+    "project_id": "abb244d41a6542c7b643658de09d9870",
+    "joint_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_joint",
+    "name": "head_motor",
+    "actuator_type": "position",
+    "configuration": {
+      "kp": 60.0,
+      "kv": 2.0,
+      "ctrlrange": [
+        -0.785,
+        0.785
+      ],
+      "forcerange": [
+        -20.0,
+        20.0
+      ],
+      "gear": 1.0,
+      "estimated": true
+    }
+  }
+]

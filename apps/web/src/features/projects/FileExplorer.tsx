@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, FileCode2, Folder, FolderOpen, RefreshCw } from 'lucide-react'
-import { DEFAULT_ROBOT_ID, useWorkspaceStore } from '../../stores/workspace'
+import { useWorkspaceStore } from '../../stores/workspace'
+import { RobotSwitchButton } from '../robots/RobotSwitcherModal'
 import { ActionButton, ErrorNotice, LoadingRow, Panel } from '../../components/Panel'
 import { clsx } from '../../components/clsx'
 
@@ -118,7 +119,7 @@ export function FileExplorer() {
   const filesError = useWorkspaceStore((s) => s.filesError)
   const refreshFiles = useWorkspaceStore((s) => s.refreshFiles)
   const robotInstall = useWorkspaceStore((s) => s.robotInstall)
-  const installRobot = useWorkspaceStore((s) => s.installRobot)
+  const setRobotModalOpen = useWorkspaceStore((s) => s.setRobotModalOpen)
 
   const installing = robotInstall.status === 'loading'
   const tree = buildTree(files)
@@ -129,14 +130,17 @@ export function FileExplorer() {
       className="max-h-[55%] shrink-0"
       actions={
         activeProjectId ? (
-          <ActionButton
-            onClick={() => void refreshFiles()}
-            disabled={filesState === 'loading'}
-            variant="ghost"
-            title="Refresh file list"
-          >
-            <RefreshCw size={12} />
-          </ActionButton>
+          <>
+            <RobotSwitchButton />
+            <ActionButton
+              onClick={() => void refreshFiles()}
+              disabled={filesState === 'loading'}
+              variant="ghost"
+              title="Refresh file list"
+            >
+              <RefreshCw size={12} />
+            </ActionButton>
+          </>
         ) : undefined
       }
     >
@@ -145,12 +149,12 @@ export function FileExplorer() {
         {activeProjectId && filesState === 'loading' && files.length === 0 && !installing && (
           <LoadingRow label="Loading files…" />
         )}
-        {installing && <LoadingRow label="Installing MicroDuck…" />}
+        {installing && <LoadingRow label="Installing robot…" />}
         {filesError && <ErrorNotice message={filesError} onRetry={() => void refreshFiles()} />}
         {robotInstall.status === 'error' && robotInstall.error && files.length === 0 && (
           <ErrorNotice
-            message={`MicroDuck auto-install failed: ${robotInstall.error}`}
-            onRetry={() => void installRobot(DEFAULT_ROBOT_ID)}
+            message={`Robot auto-install failed: ${robotInstall.error}`}
+            onRetry={() => setRobotModalOpen(true)}
           />
         )}
         {tree.map((node) => (

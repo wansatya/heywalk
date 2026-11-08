@@ -6,13 +6,16 @@ import {
   deleteProject as deleteProjectApi,
   describeApiError,
   generateController,
-  getMicroduckModel,
+  getFoundryProjectForSequence,
+  getInstalledRobotId,
   getProject,
+  getRobotModel,
   importSampleController,
   installStarterRobot,
   listModelRequests,
   listProjectFiles,
   listProjects,
+  listStarterRobots,
   readProjectFile,
   requestFix,
   saveProjectFile,
@@ -20,18 +23,19 @@ import {
 import type {
   FixResult,
   GenerationResult,
-  MicroduckModel,
   ModelRequest,
   Project,
   ProjectFileEntry,
+  RobotModel,
   RobotPackage,
   RunObjective,
+  StarterRobot,
   TraceStep,
 } from '../api/types'
 
 export type CenterTab = 'simulator' | 'code'
 
-/** The only robot: every project gets MicroDuck installed automatically. */
+/** Fallback robot: fresh projects auto-install MicroDuck; the user can switch. */
 export const DEFAULT_ROBOT_ID = 'microduck'
 
 /** Entry point the simulator executes; Start runs its saved content. */
@@ -99,18 +103,27 @@ interface WorkspaceState {
   fixHint: string | null
   /** Recent model-request log rows (model, latency, prompt version, status). */
   modelRequests: ModelRequest[]
-  /** MicroDuck auto-install state (the only robot; no chooser). */
+  /** Starter-robot install state (auto-install or modal switch). */
   robotInstall: AsyncState<RobotPackage>
   /** Projects already attempted this session (no install-retry loops). */
   autoInstallTried: Record<string, boolean>
-  /** Official MicroDuck model metadata + mesh-asset load status. */
-  microduckModel: AsyncState<MicroduckModel>
+  /** Bundled robot installed in the active project (null = custom/unknown). */
+  installedRobotId: string | null
+  /** True when the active sequence is a Robot Foundry generated robot. */
+  isFoundryProject: boolean
+  /** Foundry id linked to the active sequence, if any. */
+  foundryProjectId: string | null
+  /** Switch-robot modal catalog + visibility. */
+  robotCatalog: AsyncState<StarterRobot[]>
+  robotModalOpen: boolean
+  /** Installed robot's model metadata + mesh-asset load status. */
+  robotModel: AsyncState<RobotModel>
   /** Middle-column top tab; opening a file switches to the editor. */
   centerTab: CenterTab
 
   refreshProjects: () => Promise<void>
   selectProject: (id: string | null) => Promise<void>
-  newExperiment: (name?: string) => Promise<void>
+  newExperiment: (name?: string, robotId?: string) => Promise<void>
   /** Delete a sequence; returns the project id to show next, if any. */
   deleteProject: (id: string) => Promise<string | null>
   setTaskDraft: (task: string) => void
@@ -128,7 +141,9 @@ interface WorkspaceState {
   dismissFix: () => void
   refreshModelRequests: () => Promise<void>
   installRobot: (robotId: string) => Promise<void>
-  refreshMicroduckModel: () => Promise<void>
+  refreshRobotModel: (robotId: string) => Promise<void>
+  refreshRobotCatalog: () => Promise<void>
+  setRobotModalOpen: (open: boolean) => void
   setCenterTab: (tab: CenterTab) => void
 }
 
@@ -169,7 +184,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       modelRequests: [],
       robotInstall: idle(),
       autoInstallTried: {},
-      microduckModel: idle(),
+      installedRobotId: null,
+      isFoundryProject: false,
+      foundryProjectId: null,
+      robotCatalog: idle(),
+      robotModalOpen: false,
+      robotModel: idle(),
       centerTab: 'simulator',
 
       refreshProjects: async () => {
@@ -192,7 +212,16 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             }
             await get().refreshFiles()
           } else {
-            set({ files: [], activeFilePath: '', openPaths: [], editorContent: '', editorDirty: false, controllerBlank: null })
+            set({
+              files: [],
+              activeFilePath: '',
+              openPaths: [],
+              editorContent: '',
+              editorDirty: false,
+              controllerBlank: null,
+              isFoundryProject: false,
+              foundryProjectId: null,
+            })
           }
         } catch (err) {
           set({
@@ -224,6 +253,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           fixHint: null,
           modelRequests: [],
           robotInstall: idle(),
+          installedRobotId: null,
+          isFoundryProject: false,
+          foundryProjectId: null,
+          robotModel: idle(),
           saveState: idle(),
         })
         if (!id) return
@@ -240,10 +273,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         await get().refreshModelRequests()
       },
 
-      newExperiment: async (name) => {
+      newExperiment: async (name, robotId) => {
         // A new sequence starts without a task: nothing is generated and no
-        // runner is started. MicroDuck is installed below so the simulator can
-        // show the duck straight away, while Start waits for the task text.
+        // runner is started. A robot is installed below so the simulator can
+        // show it straight away, while Start waits for the task text.
         const projectName = name?.trim() || `Sequence ${get().projects.length + 1}`
         const project = await createProject(projectName, '')
         set((state) => ({
@@ -270,11 +303,24 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           fixHint: null,
           modelRequests: [],
           robotInstall: idle(),
+          installedRobotId: null,
+          isFoundryProject: false,
+          foundryProjectId: null,
+          robotModel: idle(),
+          // A caller-selected robot installs explicitly below. Mark the
+          // project as attempted so refreshFiles cannot auto-install
+          // MicroDuck first.
+          autoInstallTried: robotId
+            ? { ...state.autoInstallTried, [project.id]: true }
+            : state.autoInstallTried,
         }))
-        // A fresh sequence starts with MicroDuck installed (auto-install
-        // runs inside refreshFiles when the file list comes back empty), and
-        // the simulator shows its STAND preview — no run is created here.
-        await get().refreshFiles().catch(() => undefined)
+        if (robotId) {
+          await get().installRobot(robotId)
+        } else {
+          // A fresh sequence starts with MicroDuck installed (auto-install
+          // runs inside refreshFiles when the file list comes back empty).
+          await get().refreshFiles().catch(() => undefined)
+        }
         set({ centerTab: 'simulator' })
       },
 
@@ -313,14 +359,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             set({ controllerBlank: null })
           }
           if (files.length === 0 && !get().autoInstallTried[activeProjectId]) {
-            // Fresh sequence: MicroDuck is the only robot, so install it
-            // without asking. One attempt per project per session; a failure
-            // surfaces in the explorer with a manual retry.
+            // Fresh sequence: install the default robot without asking so
+            // the simulator has something to show. One attempt per project
+            // per session; a failure surfaces in the explorer with the
+            // switch-robot modal as the manual retry.
             set((state) => ({
               autoInstallTried: { ...state.autoInstallTried, [activeProjectId]: true },
             }))
             await get().installRobot(DEFAULT_ROBOT_ID)
             return
+          }
+          if (files.length > 0) {
+            // Track which bundled robot (if any) the file list holds, so
+            // the 3D view and the sample import follow project switches.
+            // Best-effort: a failure leaves the previous value, never a
+            // spinner — the file list itself already loaded.
+            try {
+              set({ installedRobotId: await getInstalledRobotId(activeProjectId) })
+            } catch {
+              // Keep the previous value; the explorer retry re-runs this.
+            }
+            // A Foundry-generated robot is a custom rig: the simulator must
+            // not fall back to the bundled MicroDuck preview.
+            try {
+              const foundry = await getFoundryProjectForSequence(activeProjectId)
+              set({ isFoundryProject: true, foundryProjectId: foundry.id })
+            } catch {
+              set({ isFoundryProject: false, foundryProjectId: null })
+            }
+          } else {
+            set({ isFoundryProject: false, foundryProjectId: null })
           }
           const { activeFilePath } = get()
           if (files.length > 0 && !files.some((f) => f.path === activeFilePath)) {
@@ -510,8 +578,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           // importSample and generation writes fresh code — installs never
           // clobber user code.
           const robot = await installStarterRobot(activeProjectId, robotId, false)
-          set({ robotInstall: { status: 'success', error: null, data: robot } })
+          set({
+            robotInstall: { status: 'success', error: null, data: robot },
+            installedRobotId: robotId,
+            isFoundryProject: false,
+            foundryProjectId: null,
+          })
           await get().refreshFiles()
+          await get().refreshRobotModel(robotId)
           // Fresh sequences land on the empty controller with its
           // import-sample / generate next steps.
           const paths = get().files.map((f) => f.path)
@@ -528,9 +602,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (!activeProjectId) return
         set({ sampleState: loading(get().sampleState) })
         try {
-          // Server-side and atomic: writes the sample and resets the
-          // project to default (flag) grading in one step.
-          const saved = await importSampleController(activeProjectId, DEFAULT_ROBOT_ID)
+          // Server-side and atomic: writes that robot's sample and resets
+          // the project to default grading in one step.
+          const saved = await importSampleController(
+            activeProjectId,
+            get().installedRobotId ?? DEFAULT_ROBOT_ID,
+          )
           // The sample is the walk-to-flag behavior, so the backend also
           // writes its matching task. Read it back so Start is enabled on a
           // fresh sequence whose task was empty before the import.
@@ -550,26 +627,43 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
       },
 
-      refreshMicroduckModel: async () => {
-        set({ microduckModel: loading(get().microduckModel) })
+      refreshRobotModel: async (robotId) => {
+        set({ robotModel: loading(get().robotModel) })
         try {
-          const model = await getMicroduckModel()
+          const model = await getRobotModel(robotId)
           if (!model.assets_ok) {
             set({
-              microduckModel: {
+              robotModel: {
                 status: 'error',
-                error: model.error ?? 'MicroDuck mesh assets are missing.',
+                error: model.error ?? 'Robot mesh assets are missing.',
                 data: model,
               },
             })
           } else {
-            set({ microduckModel: { status: 'success', error: null, data: model } })
+            set({ robotModel: { status: 'success', error: null, data: model } })
           }
         } catch (err) {
           set({
-            microduckModel: { status: 'error', error: describeApiError(err), data: null },
+            robotModel: { status: 'error', error: describeApiError(err), data: null },
           })
         }
+      },
+
+      refreshRobotCatalog: async () => {
+        set({ robotCatalog: loading(get().robotCatalog) })
+        try {
+          const robots = await listStarterRobots()
+          set({ robotCatalog: { status: 'success', error: null, data: robots } })
+        } catch (err) {
+          set({
+            robotCatalog: { status: 'error', error: describeApiError(err), data: null },
+          })
+        }
+      },
+
+      setRobotModalOpen: (open) => {
+        set({ robotModalOpen: open })
+        if (open) void get().refreshRobotCatalog()
       },
 
       dismissFix: () => set({ fix: idle(), fixRunId: null, fixBase: {}, diffBase: null, fixTrace: [], fixHint: null }),

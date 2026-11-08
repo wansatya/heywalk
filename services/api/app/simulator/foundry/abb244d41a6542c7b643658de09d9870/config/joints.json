@@ -1,0 +1,62 @@
+[
+  {
+    "id": "dbadc28dd11e491883bc38cd1e65c1d3_joint",
+    "project_id": "abb244d41a6542c7b643658de09d9870",
+    "component_id": "dbadc28dd11e491883bc38cd1e65c1d3",
+    "parent_component_id": "4ff9f17f02464fed8b39f25995ca0887",
+    "name": "leg_2_joint",
+    "joint_type": "hinge",
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "position": [
+      0.0,
+      0.0,
+      0.0405835
+    ],
+    "limits": [
+      -1.0,
+      1.0
+    ],
+    "metadata": {
+      "estimated": true,
+      "body_pos": [
+        -0.0636604774535809,
+        0.0,
+        0.005570291777188326
+      ]
+    }
+  },
+  {
+    "id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0_joint",
+    "project_id": "abb244d41a6542c7b643658de09d9870",
+    "component_id": "e5f5bf0295ce439cb2e0ded9e6b7ffc0",
+    "parent_component_id": "4ff9f17f02464fed8b39f25995ca0887",
+    "name": "head_joint",
+    "joint_type": "hinge",
+    "axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "position": [
+      0.0,
+      0.0,
+      0.0246685
+    ],
+    "limits": [
+      -0.785,
+      0.785
+    ],
+    "metadata": {
+      "estimated": true,
+      "body_pos": [
+        -0.03461538461538462,
+        0.0,
+        0.22281167108753314
+      ]
+    }
+  }
+]

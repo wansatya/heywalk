@@ -189,7 +189,10 @@ class DockerRunner:
             ) as staging_dir:
                 staging = Path(staging_dir)
                 workspace, out_dir, entry = staging_mod.prepare_workspace(
-                    staging, ctx.controller_files, ctx.world_config
+                    staging,
+                    ctx.controller_files,
+                    ctx.world_config,
+                    ctx.asset_source_dir,
                 )
                 staging_mod.make_world_readable(workspace)
                 staging_mod.make_world_writable(out_dir)

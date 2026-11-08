@@ -110,7 +110,12 @@ class RobotPackageOut(BaseModel):
 
 
 class StarterRobotOut(BaseModel):
-    """A bundled starter robot the platform can install into a project."""
+    """A robot the platform can install into a project.
+
+    ``source`` distinguishes bundled platform robots from robots generated in
+    Robot Foundry. Foundry entries carry the id of the Foundry project so the
+    UI can link back to it.
+    """
 
     id: str
     name: str
@@ -121,6 +126,9 @@ class StarterRobotOut(BaseModel):
     model_path: str
     joints: list[RobotJointOut] = []
     tests: list[PlannedTestOut] = []
+    source: str = "bundled"
+    foundry_id: str | None = None
+    thumbnail_asset_url: str | None = None
 
 
 class StarterRobotInstall(BaseModel):

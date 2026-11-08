@@ -1,0 +1,91 @@
+<!-- HeyWalk ED209 composition: platform walker prototype + ground plane + STAND keyframe. Single-file MJCF; meshes resolve from the bundled assets/ directory. See README.md. -->
+<mujoco model="ED209-inspired walker">
+  <compiler angle="radian" meshdir="assets" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+  <default>
+    <joint damping="1.0" armature="0.02" frictionloss="0.3"/>
+    <geom condim="3" friction="1.0 0.1 0.1" density="650" rgba="0.38 0.48 0.50 1"/>
+    <position kp="2500" kv="200" forcerange="-2500 2500"/>
+  </default>
+  <asset>
+    <mesh name="torso" file="torso.stl"/>
+    <mesh name="neck" file="neck_bellows.stl"/>
+    <mesh name="left_pod" file="left_weapon_pod.stl"/>
+    <mesh name="right_pod" file="right_weapon_pod.stl"/>
+    <mesh name="left_cannons" file="left_cannons.stl"/>
+    <mesh name="right_cannons" file="right_cannons.stl"/>
+    <mesh name="left_upper" file="left_upper_leg.stl"/>
+    <mesh name="right_upper" file="right_upper_leg.stl"/>
+    <mesh name="left_lower" file="left_lower_leg.stl"/>
+    <mesh name="right_lower" file="right_lower_leg.stl"/>
+    <mesh name="left_foot" file="left_foot.stl"/>
+    <mesh name="right_foot" file="right_foot.stl"/>
+  </asset>
+  <worldbody>
+    <light pos="0 -3 5" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <body name="torso" pos="0 0 1.49">
+      <freejoint name="root"/>
+      <geom name="torso_visual" type="mesh" mesh="torso" mass="38" contype="0" conaffinity="0"/>
+      <geom name="torso_collision" type="box" pos="0 0 0" size=".34 .40 .29" rgba="0.2 0.3 0.32 0.18" density="0"/>
+      <body name="neck" pos="-0.05 0 0.34">
+        <geom type="mesh" mesh="neck" mass="5" contype="0" conaffinity="0"/>
+        <geom type="cylinder" size=".21 .18" rgba=".2 .25 .27 .25" density="0"/>
+      </body>
+      <body name="left_weapon_pod" pos="0.04 0.39 0.34">
+        <geom type="mesh" mesh="left_pod" mass="8" contype="0" conaffinity="0"/>
+        <geom type="box" size=".34 .18 .21" rgba=".2 .25 .27 .2" density="0"/>
+        <body name="left_cannons" pos="0 0 0">
+          <geom type="mesh" mesh="left_cannons" mass="2" contype="0" conaffinity="0"/>
+        </body>
+      </body>
+      <body name="right_weapon_pod" pos="0.04 -0.39 0.34">
+        <geom type="mesh" mesh="right_pod" mass="8" contype="0" conaffinity="0"/>
+        <geom type="box" size=".34 .18 .21" rgba=".2 .25 .27 .2" density="0"/>
+        <body name="right_cannons" pos="0 0 0">
+          <geom type="mesh" mesh="right_cannons" mass="2" contype="0" conaffinity="0"/>
+        </body>
+      </body>
+      <body name="left_upper_leg" pos="0 -0.29 -0.36">
+        <joint name="left_hip_pitch" type="hinge" axis="0 1 0" range="-0.8 0.8"/>
+        <geom type="mesh" mesh="left_upper" mass="12" contype="0" conaffinity="0"/>
+        <geom type="capsule" fromto="0 0 -0.08 0 0 -0.32" size=".11" rgba=".2 .25 .27 .2" density="0"/>
+        <body name="left_lower_leg" pos="0.02 0 -0.45">
+          <joint name="left_knee" type="hinge" axis="0 1 0" range="-1.5 0.2"/>
+          <geom type="mesh" mesh="left_lower" mass="10" contype="0" conaffinity="0"/>
+          <geom type="box" pos=".04 0 -.26" size=".15 .13 .20" rgba=".2 .25 .27 .2" density="0"/>
+          <body name="left_foot" pos="0.02 0 -0.48">
+            <joint name="left_ankle" type="hinge" axis="0 1 0" range="-0.6 0.6"/>
+            <geom name="left_foot_visual" type="mesh" mesh="left_foot" mass="8" contype="0" conaffinity="0"/>
+            <geom name="left_foot_collision" type="box" pos=".2 0 -.10" size=".30 .20 .10" rgba=".2 .25 .27 .2" density="0"/>
+          </body>
+        </body>
+      </body>
+      <body name="right_upper_leg" pos="0 0.29 -0.36">
+        <joint name="right_hip_pitch" type="hinge" axis="0 1 0" range="-0.8 0.8"/>
+        <geom type="mesh" mesh="right_upper" mass="12" contype="0" conaffinity="0"/>
+        <geom type="capsule" fromto="0 0 -0.08 0 0 -0.32" size=".11" rgba=".2 .25 .27 .2" density="0"/>
+        <body name="right_lower_leg" pos="0.02 0 -0.45">
+          <joint name="right_knee" type="hinge" axis="0 1 0" range="-1.5 0.2"/>
+          <geom type="mesh" mesh="right_lower" mass="10" contype="0" conaffinity="0"/>
+          <geom type="box" pos=".04 0 -.26" size=".15 .13 .20" rgba=".2 .25 .27 .2" density="0"/>
+          <body name="right_foot" pos="0.02 0 -0.48">
+            <joint name="right_ankle" type="hinge" axis="0 1 0" range="-0.6 0.6"/>
+            <geom name="right_foot_visual" type="mesh" mesh="right_foot" mass="8" contype="0" conaffinity="0"/>
+            <geom name="right_foot_collision" type="box" pos=".2 0 -.10" size=".30 .20 .10" rgba=".2 .25 .27 .2" density="0"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="left_hip_pitch_position" joint="left_hip_pitch"/>
+    <position name="left_knee_position" joint="left_knee"/>
+    <position name="left_ankle_position" joint="left_ankle"/>
+    <position name="right_hip_pitch_position" joint="right_hip_pitch"/>
+    <position name="right_knee_position" joint="right_knee"/>
+    <position name="right_ankle_position" joint="right_ankle"/>
+  </actuator>
+  <keyframe>
+    <key name="STAND" qpos="0 0 1.49 1 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>

@@ -102,15 +102,16 @@ def _locomotion_time_limit(world: dict[str, Any]) -> float:
     )
 
 
-def _microduck_defaults(store: Store, project_id: str) -> dict[str, Any]:
-    """Official-model physics defaults when the project's robot is MicroDuck.
+def _detect_project_robot(store: Store, project_id: str) -> Any | None:
+    """Robot installed in a project, detected by MJCF marker.
 
-    Detected from the stored robot description (composition marker), so no
-    extra project state is needed and explicit run settings always win.
-    Returns {} for generated robots and for projects without a model.
+    Reads the stored robot description, so no extra project state is
+    needed. Returns None for custom generated rigs and projects without a
+    model. Both bundled robots and Foundry-generated robots expose the same
+    ``id`` / ``scenario_defaults`` surface.
     """
-    from ..simulator.microduck import is_composed_scene
-    from ..simulator.robot_catalog import MICRODUCK_SCENARIO_DEFAULTS
+    from ..simulator.foundry_robot import detect_foundry_robot
+    from ..simulator.robot_catalog import detect_starter_robot
 
     try:
         for entry in store.list_files(project_id):
@@ -118,13 +119,57 @@ def _microduck_defaults(store: Store, project_id: str) -> dict[str, Any]:
                 continue
             stored = store.get_file(project_id, entry["path"])
             content = stored["content"] if stored else ""
-            if "<mujoco" in content[:4096].lower() and is_composed_scene(
-                content
-            ):
-                return dict(MICRODUCK_SCENARIO_DEFAULTS)
+            if "<mujoco" in content[:4096].lower():
+                robot = detect_starter_robot(content)
+                if robot is not None:
+                    return robot
+                foundry = detect_foundry_robot(content)
+                if foundry is not None:
+                    return foundry
     except (OSError, KeyError):
         pass
+    return None
+
+
+def _bundled_robot_defaults(store: Store, project_id: str) -> dict[str, Any]:
+    """Bundled-robot physics defaults for the installed robot, if any.
+
+    MicroDuck runs use the official physics, ED-209 runs its prototype
+    physics; explicit run settings always win. Returns {} for generated
+    robots and for projects without a model.
+    """
+    robot = _detect_project_robot(store, project_id)
+    if robot is None:
+        return {}
+    return dict(robot.scenario_defaults)
+
+
+def _microduck_defaults(store: Store, project_id: str) -> dict[str, Any]:
+    """Official-model physics defaults when the project's robot is MicroDuck.
+
+    Detected from the stored robot description (composition marker), so no
+    extra project state is needed and explicit run settings always win.
+    Returns {} for other robots, generated rigs, and projects without a
+    model.
+    """
+    robot = _detect_project_robot(store, project_id)
+    if robot is not None and robot.id == "microduck":
+        return dict(robot.scenario_defaults)
     return {}
+
+
+def _bundled_goal_geoms(
+    store: Store, project_id: str, world: dict[str, Any]
+) -> list[str]:
+    """Goal-geom names for a bundled-robot locomotion run (else []).
+
+    Only MicroDuck has a walking policy, so only its runs aim at shared
+    arena props; every other robot gets no goal geoms.
+    """
+    robot = _detect_project_robot(store, project_id)
+    if robot is None or robot.id != "microduck":
+        return []
+    return _microduck_goal_geoms(store, project_id, world)
 
 
 def _microduck_goal_geoms(
@@ -137,8 +182,7 @@ def _microduck_goal_geoms(
     ball: contacting them is an objective, so they must not count as
     disqualifying collisions.
     """
-    from ..simulator.microduck import is_composed_scene
-    from ..simulator.microduck.model import (
+    from ..simulator.scene import (
         ball_geom_names,
         flag_geom_names,
         wall_geom_names,
@@ -151,23 +195,14 @@ def _microduck_goal_geoms(
     kinds = {
         phase.get("type") for phase in phases if isinstance(phase, dict)
     }
-    try:
-        for entry in store.list_files(project_id):
-            if not entry["path"].lower().endswith(".xml"):
-                continue
-            stored = store.get_file(project_id, entry["path"])
-            content = stored["content"] if stored else ""
-            if "<mujoco" in content[:4096].lower() and is_composed_scene(
-                content
-            ):
-                geoms = list(flag_geom_names())
-                if "touch" in kinds or "wander" in kinds:
-                    geoms.extend(wall_geom_names())
-                if "kick" in kinds:
-                    geoms.extend(ball_geom_names())
-                return geoms
-    except (OSError, KeyError):
-        pass
+    robot = _detect_project_robot(store, project_id)
+    if robot is not None and robot.id == "microduck":
+        geoms = list(flag_geom_names())
+        if "touch" in kinds or "wander" in kinds:
+            geoms.extend(wall_geom_names())
+        if "kick" in kinds:
+            geoms.extend(ball_geom_names())
+        return geoms
     return []
 
 
@@ -322,9 +357,9 @@ class ExecutionManager:
         world = dict(DEFAULT_WORLD) if backend == BACKEND_DIFF_DRIVE else {}
         if backend == BACKEND_MUJOCO:
             world.update(MUJOCO_DEFAULTS)
-            # Official-model runs use the official physics (dt, keyframe,
-            # integrator, contacts); explicit caller keys always win.
-            for key, value in _microduck_defaults(
+            # Bundled-robot runs use that robot's physics (dt, keyframe,
+            # integrator, contacts, stand); explicit caller keys always win.
+            for key, value in _bundled_robot_defaults(
                 self.store, project_id
             ).items():
                 if key not in (world_config or {}):
@@ -353,7 +388,7 @@ class ExecutionManager:
             # (the stored world records the effective setting for reruns).
             world["fix_base"] = False
             if "goal_geoms" not in (world_config or {}):
-                world["goal_geoms"] = _microduck_goal_geoms(
+                world["goal_geoms"] = _bundled_goal_geoms(
                     self.store, project_id, world
                 )
             if "time_limit" not in (world_config or {}):
@@ -562,6 +597,9 @@ class ExecutionManager:
                 ),
                 cancel_event=cancel_event,
                 estop_event=estop_event,
+                asset_source_dir=str(
+                    self.store.project_dir(run["project_id"])
+                ),
             )
             # Controller source is loaded for the isolated runner only; it is
             # never imported or exec()'d in this process.

@@ -42,7 +42,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from .microduck.model import (
+from .scene import (
     BALL_BODY,
     FLAG_BODY,
     PROP_LABELS,
