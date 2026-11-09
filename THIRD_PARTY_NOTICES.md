@@ -2,7 +2,7 @@
 
 HeyWalk includes third-party robot descriptions, 3D mesh assets, a pretrained
 locomotion policy, and simulation/runtime software. Those components remain
-under their own licenses. The MIT license in [`LICENSE`](LICENSE) applies only
+under their own licenses. The Apache-2.0 license in [`LICENSE`](LICENSE) applies only
 to HeyWalk's original application code and documentation, not to the
 third-party material listed below.
 
@@ -65,7 +65,7 @@ bodies, and the upstream keyframes around the unchanged robot subtree. That
 generated scene is a derivative of the Apache-2.0 MJCF and keeps an
 attribution header naming the upstream repository and commit. The robot
 subtree, joints, inertias, actuators, sensors, and contact classes are not
-changed. HeyWalk's original additions remain subject to HeyWalk's MIT
+changed. HeyWalk's original additions remain subject to HeyWalk's Apache-2.0
 license; the upstream Apache-2.0 material is not relicensed.
 
 ### 1.2 STL mesh assets — CC BY-NC-SA 4.0
@@ -221,7 +221,7 @@ used by the Dockerfiles are distributed under their own licenses.
 
 ## 4. Separation of intellectual property
 
-- **Original HeyWalk application code and documentation:** MIT, as stated in
+- **Original HeyWalk application code and documentation:** Apache-2.0, as stated in
   [`LICENSE`](LICENSE). This includes the application source, the integration
   layer, and HeyWalk-authored documentation.
 - **MicroDuck MJCF robot descriptions and scenes:** Apache-2.0, copyright

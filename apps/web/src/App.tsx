@@ -141,7 +141,7 @@ export default function App() {
           <FileExplorer />
           <RunHistory />
           <footer className="flex shrink-0 items-center justify-center gap-2 text-[11px] text-stone-400">
-            <span>MIT Licence · © 2026 Wan Satya</span>
+            <span>Apache-2.0 Licence · © 2026 Wan Satya</span>
             <a
               href="https://linkedin.com/in/wawanbsetyawan"
               target="_blank"

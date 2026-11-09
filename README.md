@@ -12,7 +12,7 @@
 <br/>
 
 <p align="center">
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2ea043?style=flat-square"></a>
   <a href="services/api/pyproject.toml"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white"></a>
   <a href="apps/web"><img alt="Web: React 18 + TypeScript" src="https://img.shields.io/badge/web-React%2018%20%2B%20TS-3178C6?style=flat-square&logo=react&logoColor=white"></a>
   <a href="https://docs.ros.org/en/jazzy/"><img alt="ROS 2 Jazzy" src="https://img.shields.io/badge/ROS%202-Jazzy-22314E?style=flat-square&logo=ros&logoColor=white"></a>
@@ -555,8 +555,8 @@ Generated code is untrusted, so every run executes in its own single-use contain
 ## Licensing
 
 HeyWalk's original application code and documentation are released under the
-MIT License (see [`LICENSE`](LICENSE)). That license does not cover the
-third-party components bundled with the simulator:
+Apache License, Version 2.0 (see [`LICENSE`](LICENSE)). That license does not
+cover the third-party components bundled with the simulator:
 
 - The Pollen Robotics MicroDuck MJCF robot descriptions and scene files are
   Apache-2.0.

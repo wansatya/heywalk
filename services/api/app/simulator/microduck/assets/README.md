@@ -14,8 +14,8 @@ repository at commit `bae39f5900b318f7e87fc485c30a31213cfa14eb`, under
 - **Full project notice:** `THIRD_PARTY_NOTICES.md` at the repository root
 - **Modifications:** none. These files are byte-identical to upstream.
 
-These files are **not** MIT-licensed and must not be redistributed under the
-project's MIT license. If you share these meshes or an adaptation of them,
+These files are **not** Apache-2.0-licensed and must not be redistributed under the
+project's Apache-2.0 license. If you share these meshes or an adaptation of them,
 credit Pollen Robotics, link to the upstream repository and to CC BY-NC-SA
 4.0, state whether changes were made, and license the adaptation under
 CC BY-NC-SA 4.0.
