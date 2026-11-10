@@ -13,6 +13,3 @@ __pycache__/
 *.db-journal
 # created per project, visible on host via bind mount.
 sequences/
-landing
-FEATURE.md
-visual-plan/
