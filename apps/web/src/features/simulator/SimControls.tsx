@@ -16,6 +16,7 @@ const STREAM_LABELS: Record<StreamConnectionState, { label: string; className: s
   connecting: { label: 'Connecting…', className: 'bg-sky-500 animate-pulse' },
   live: { label: 'Live', className: 'bg-emerald-500' },
   reconnecting: { label: 'Reconnecting…', className: 'bg-amber-500 animate-pulse' },
+  polling: { label: 'Polling (no WS)', className: 'bg-amber-500' },
   closed: { label: 'Stream closed', className: 'bg-stone-400' },
 }
 

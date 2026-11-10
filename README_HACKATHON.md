@@ -483,6 +483,37 @@ docker compose up --build
 
 Open [http://localhost:8021](http://localhost:8021). The web container proxies `/api` and `/health` to the API service. Set `WEB_PORT` to serve on another host port.
 
+### Putting the stack behind HTTPS
+
+If a TLS terminator (host nginx, Caddy, ALB, Cloudflare) sits in front of the stack, it must forward the WebSocket upgrade: the live run view connects to `/api/runs/{id}/stream`, and without upgrade forwarding the handshake never opens (the UI reports "disconnected after repeated retries" and falls back to polling telemetry over REST).
+
+For a host nginx in front of compose (`heywalk-web` on `WEB_PORT`):
+
+```nginx
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+server {
+  listen 443 ssl;
+  server_name heywalk.example.com;
+  # ssl_certificate / ssl_certificate_key ...
+
+  location / {
+    proxy_pass http://127.0.0.1:8021;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+  }
+}
+```
+
+Cloudflare checklist: Network → **WebSockets ON**, no Transform/Configuration Rules stripping the `Upgrade` header, and note that Bot Fight Mode can interfere with upgrade handshakes.
+
 `RUNNER_MEMORY` (default `1024m`) caps each run container. The measured working set of MuJoCo + ONNX + rclpy in one process is ~500 MiB, so the cap leaves roughly 2× headroom; with `--memory-swap` pinned to the cap, a smaller limit would OOM-kill the controller and turn a verdict into a crash.
 
 <br/>

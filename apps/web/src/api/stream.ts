@@ -1,8 +1,13 @@
 // WebSocket client for live run events (AGENTS.md section 10:
 // WS /api/runs/{run_id}/stream). Auto-reconnects with backoff while the
 // run is still live; terminal states close the socket for good.
+//
+// When the handshake never opens (a proxy or firewall between the browser
+// and the server blocks the WebSocket upgrade — e.g. a TLS terminator
+// without Upgrade forwarding), the client falls back to polling the REST
+// telemetry endpoint so the live view keeps working, marked as 'polling'.
 
-import { streamUrl } from './client'
+import { getRun, getRunTelemetry, streamUrl } from './client'
 import {
   isTerminalStatus,
   type EvaluationReport,
@@ -17,6 +22,7 @@ export type StreamConnectionState =
   | 'connecting'
   | 'live'
   | 'reconnecting'
+  | 'polling'
   | 'closed'
 
 export interface StreamHandlers {
@@ -28,6 +34,12 @@ const MAX_ATTEMPTS = 6
 const BASE_DELAY_MS = 500
 /** Server-side close code for "unknown run" (see app/api/stream.py). */
 const CLOSE_UNKNOWN_RUN = 4404
+/** Never-opened handshake failures before the polling fallback engages. */
+const FALLBACK_AFTER_FAILURES = 2
+/** REST polling cadence while the WebSocket is unavailable. */
+const POLL_INTERVAL_MS = 1000
+/** Consecutive poll failures before the fallback gives up. */
+const MAX_POLL_FAILURES = 5
 
 /** Human hint for the close code that killed the stream. */
 function describeClose(code: number | null, connectedOnce: boolean): string {
@@ -63,7 +75,16 @@ function parseEvent(data: unknown): StreamEvent | null {
   }
 }
 
-export function connectRunStream(runId: string, handlers: StreamHandlers): () => void {
+export interface StreamOptions {
+  /** Newest preloaded telemetry timestamp; the fallback emits only newer samples. */
+  lastTelemetryT?: number
+}
+
+export function connectRunStream(
+  runId: string,
+  handlers: StreamHandlers,
+  options: StreamOptions = {},
+): () => void {
   let socket: WebSocket | null = null
   let attempts = 0
   let closed = false
@@ -71,6 +92,10 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
   let lastStatus: RunStatus | null = null
   let lastCloseCode: number | null = null
   let connectedOnce = false
+  let polling = false
+  let pollTimer = 0
+  let pollFailures = 0
+  let lastT = options.lastTelemetryT ?? -1
 
   const setState = (state: StreamConnectionState) => handlers.onStateChange(state)
 
@@ -138,8 +163,13 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
   }
 
   function scheduleRetry() {
-    if (closed) return
-    if (attempts >= MAX_ATTEMPTS) {
+    if (closed || polling) return
+    attempts += 1
+    if (!connectedOnce && attempts >= FALLBACK_AFTER_FAILURES) {
+      startPolling()
+      return
+    }
+    if (attempts > MAX_ATTEMPTS) {
       setState('closed')
       handlers.onEvent({
         type: 'error',
@@ -147,13 +177,63 @@ export function connectRunStream(runId: string, handlers: StreamHandlers): () =>
       })
       return
     }
-    attempts += 1
     setState('reconnecting')
     reconnectTimer = window.setTimeout(open, BASE_DELAY_MS * 2 ** (attempts - 1))
   }
 
+  function startPolling() {
+    if (closed || polling) return
+    polling = true
+    pollFailures = 0
+    setState('polling')
+    handlers.onEvent({
+      type: 'log',
+      line: 'Live stream unavailable (WebSocket handshake blocked) — polling telemetry instead.',
+    })
+    void pollOnce()
+  }
+
+  async function pollOnce(): Promise<void> {
+    if (closed || !polling) return
+    try {
+      const [run, samples] = await Promise.all([getRun(runId), getRunTelemetry(runId)])
+      // The run may have been deselected while the requests were in flight.
+      if (closed || !polling) return
+      pollFailures = 0
+      const fresh = samples.filter((s) => s.t > lastT)
+      if (fresh.length > 0) {
+        lastT = fresh[fresh.length - 1].t
+        for (const sample of fresh) handlers.onEvent({ type: 'telemetry', sample })
+      }
+      if (run.status !== lastStatus) {
+        lastStatus = run.status
+        handlers.onEvent({ type: 'status', status: run.status })
+      }
+      if (isTerminalStatus(run.status)) {
+        polling = false
+        setState('closed')
+        return
+      }
+    } catch {
+      pollFailures += 1
+      if (pollFailures >= MAX_POLL_FAILURES) {
+        polling = false
+        setState('closed')
+        handlers.onEvent({
+          type: 'error',
+          message:
+            'Live updates unavailable (WebSocket blocked and telemetry polling failed). Showing last loaded data.',
+        })
+        return
+      }
+    }
+    pollTimer = window.setTimeout(() => void pollOnce(), POLL_INTERVAL_MS)
+  }
+
   function cleanup() {
     window.clearTimeout(reconnectTimer)
+    window.clearTimeout(pollTimer)
+    polling = false
     if (socket && socket.readyState === WebSocket.OPEN) socket.close()
     socket = null
   }

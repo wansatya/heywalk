@@ -191,10 +191,18 @@ export const useExperimentStore = create<ExperimentState>()(
             set({ runs })
           }
           if (!isTerminalStatus(run.status)) {
-            disconnectStream = connectRunStream(runId, {
-              onEvent: get().handleStreamEvent,
-              onStateChange: get().setStreamState,
-            })
+            const preloaded = get().telemetry
+            disconnectStream = connectRunStream(
+              runId,
+              {
+                onEvent: get().handleStreamEvent,
+                onStateChange: get().setStreamState,
+              },
+              {
+                lastTelemetryT:
+                  preloaded.length > 0 ? preloaded[preloaded.length - 1].t : undefined,
+              },
+            )
           }
         } catch (err) {
           set({ detailLoading: false, runActionError: describeApiError(err) })
