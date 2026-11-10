@@ -1,7 +1,7 @@
 # HeyWalk API backend
 
 FastAPI service per `AGENTS.md` sections 5 and 10–12: project/file management,
-controller generation and fix requests (via the Meta Muse Spark service
+controller generation and fix requests (via the AI model service
 interface), run orchestration with a validated state machine, live WebSocket
 telemetry, objective evaluation records, and project export.
 
@@ -9,10 +9,8 @@ telemetry, objective evaluation records, and project export.
 
 ```bash
 cd services/api
-uv venv .venv  # first time only
-uv pip install --python .venv/bin/python -e '.[test]'
 cp ../../.env.example ../../.env  # set MODEL_API_KEY server-side
-.venv/bin/uvicorn app.main:app --port 8000
+uv run --extra test uvicorn app.main:app --port 8000  # creates .venv on first run
 ```
 
 The backend loads the repo `.env` automatically; an explicit environment
@@ -48,7 +46,7 @@ The frontend (`apps/web`) proxies same-origin `/api` calls to port 8000 in dev.
   per failed run, restricted to existing files plus `controller.py`, and
   rolled back on write failure; reruns (`POST /api/runs/{id}/rerun`) start
   a fresh simulation with the same world config and seed.
-- `POST .../generate` and `POST .../fix` call the live Muse Spark client
+- `POST .../generate` and `POST .../fix` call the live AI model client
   in `app/services/meta_model.py` (Chat Completions at `META_API_BASE_URL`,
   model `MUSE_MODEL`, JSON-schema structured output, 3 bounded retries).
   Without a configured `MODEL_API_KEY` they return an explicit 503
@@ -63,5 +61,5 @@ The frontend (`apps/web`) proxies same-origin `/api` calls to port 8000 in dev.
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest -q
+uv run --extra test python -m pytest -q
 ```

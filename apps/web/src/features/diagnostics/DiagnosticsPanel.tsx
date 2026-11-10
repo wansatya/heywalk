@@ -270,7 +270,7 @@ export function DiagnosticsPanel() {
           <div>
             <SectionLabel icon={<Bot size={13} className="text-purple-500" />} text="Model reasoning" />
             {fix.status === 'loading' && (
-              <LoadingRow label={`Muse Spark is diagnosing… ${modelElapsed}s`} />
+              <LoadingRow label={`AI model is diagnosing… ${modelElapsed}s`} />
             )}
             {generation.status === 'error' && generation.error && (
               <div className="space-y-2">

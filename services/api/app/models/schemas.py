@@ -337,3 +337,28 @@ class ComparisonRunSummary(BaseModel):
 class RunComparison(BaseModel):
     baseline: ComparisonRunSummary | None
     current: ComparisonRunSummary
+
+
+# ---- model settings ----
+
+
+class ModelSettingsOut(BaseModel):
+    """Effective AI-model config. The API key itself is never returned."""
+
+    base_url: str
+    model: str
+    configured: bool = False
+    key_hint: str = ""
+    api_key_from_env: bool = False
+    base_url_from_env: bool = False
+    model_from_env: bool = False
+    persist_path: str = ""
+    persisted: bool = True
+
+
+class ModelSettingsUpdate(BaseModel):
+    """Partial update: omitted fields stay unchanged, "" clears the key."""
+
+    base_url: str | None = Field(default=None, max_length=500)
+    model: str | None = Field(default=None, max_length=200)
+    api_key: str | None = Field(default=None, max_length=2000)

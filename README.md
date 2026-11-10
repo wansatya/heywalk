@@ -81,10 +81,10 @@ Tugas → Kontroler → Simulasi MuJoCo → Verdict Terukur
 
 | # | Langkah | Isinya |
 |---|---|---|
-| 1 | **BUAT — Deskripsikan tugasnya** | Tulis apa yang ingin robot lakukan dengan bahasa biasa. Muse Spark mengubahnya menjadi objektif dan kontroler ROS 2 Python. |
+| 1 | **BUAT — Deskripsikan tugasnya** | Tulis apa yang ingin robot lakukan dengan bahasa biasa. Model AI mengubahnya menjadi objektif dan kontroler ROS 2 Python. |
 | 2 | **JALANKAN — di simulasi** | Kontroler berjalan di container terisolasi dan berkomunikasi lewat ROS 2 topics. MuJoCo menjalankan fisika robot. |
 | 3 | **VERIFIKASI — periksa hasilnya** | Evaluator independen memeriksa telemetri terhadap kriteria tugas dan keselamatan. Model tidak bisa menyatakan keberhasilannya sendiri. |
-| 4 | **PERBAIKI — diagnosis dan jalankan ulang** | Saat gagal, Muse Spark menerima buktinya, mengusulkan *patch* yang tepat, dan kontroler yang diperbarui diuji lagi di dunia yang sama. |
+| 4 | **PERBAIKI — diagnosis dan jalankan ulang** | Saat gagal, model AI menerima buktinya, mengusulkan *patch* yang tepat, dan kontroler yang diperbarui diuji lagi di dunia yang sama. |
 
 Setiap *run* menyimpan tugas, versi kontroler, *seed*, log, telemetri, verdict evaluator, dan riwayat koreksi — sehingga perbandingan antar-iterasi bermakna.
 
@@ -94,13 +94,48 @@ Robot simulasi: MicroDuck oleh Pollen Robotics ([CC BY-NC-SA 4.0](https://creati
 
 ## Coba sendiri dalam 5 menit
 
+### Opsi 1: instal otomatis
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/wansatya/heywalk/main/install.sh | bash
 ```
 
-Lalu buka [http://localhost:8021](http://localhost:8021). Tanpa API key pun simulator tetap berjalan; API key hanya dibutuhkan untuk pembuatan dan perbaikan kontroler oleh AI.
+Lalu buka [http://localhost:8021](http://localhost:8021).
 
-Detail instalasi manual, rute API, dan batasan keselamatan ada di [README_HACKATHON.md](README_HACKATHON.md).
+### Opsi 2: jalankan manual (frontend + backend)
+
+Butuh [uv](https://docs.astral.sh/uv/), Python 3.12+, dan Node.js 18+. Siapkan dua terminal.
+
+**Terminal 1 — backend:**
+
+```bash
+git clone https://github.com/wansatya/heywalk.git
+cd heywalk
+cp .env.example .env   # API key bisa diisi belakangan via menu Settings
+```
+
+Di `.env`, set `RUNNER_BACKEND=local` (cukup untuk development; tanpa isolasi container).
+
+```bash
+cd services/api
+uv run --extra test uvicorn app.main:app --port 8000
+```
+
+**Terminal 2 — frontend:**
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+Buka [http://localhost:5173](http://localhost:5173) — Vite meneruskan panggilan API ke backend di port 8000.
+
+Tanpa API key pun simulator tetap berjalan; API key hanya dibutuhkan untuk pembuatan dan perbaikan kontroler oleh AI. Atur API URL, nama model, dan API key lewat menu **Settings** (ikon gear) — tanpa restart; endpoint apa pun yang kompatibel dengan OpenAI Chat Completions bisa dipakai.
+
+> Catatan: `RUNNER_BACKEND=local` menjalankan kontroler sebagai subprocess di mesin yang sama (cukup untuk development, tanpa isolasi container). Untuk eksekusi run yang terisolasi, instal Docker, bangun image runner sekali (`docker compose --profile runner-build build runner`), lalu set `RUNNER_BACKEND=docker` di `.env`.
+
+Rute API, batasan keselamatan, dan detail teknis ada di [README_HACKATHON.md](README_HACKATHON.md).
 
 <br/>
 
@@ -110,13 +145,13 @@ Setiap layer punya tugas yang jelas. AI menulis perilaku tingkat tinggi; kompone
 
 | Layer | Tugas |
 |---|---|
-| Meta Muse Spark | Menafsirkan tugas, membuat logika kontroler ROS 2, mendiagnosis kegagalan dari bukti eksekusi. |
+| Model AI | Menafsirkan tugas, membuat logika kontroler ROS 2, mendiagnosis kegagalan dari bukti eksekusi. |
 | Kontroler ROS 2 Python | Navigasi, urutan objektif, batas kecepatan, perilaku berhenti. *(buatan AI)* |
 | MuJoCo (200 Hz) | Dinamika rigid-body, gravitasi, kontak tanah, tabrakan, jatuh. |
 | ONNX Runtime + MicroDuck policy (50 Hz) | *Policy* velocity/stand bawaan upstream untuk keseimbangan dan gaya berjalan. |
 | Evaluator independen | Menilai telemetri terhadap kriteria objektif dan keselamatan. |
 
-Dibangun di atas robotika open-source, dengan bantuan AI: Muse AI, MuJoCo, ONNX, ROS 2, MicroDuck, NumPy, Python, FastAPI, React, Three.js, Hugging Face.
+Dibangun di atas robotika open-source, dengan bantuan AI: MuJoCo, ONNX, ROS 2, MicroDuck, NumPy, Python, FastAPI, React, Three.js, Hugging Face, dan endpoint Chat Completions apa pun yang kompatibel dengan OpenAI.
 
 <br/>
 
@@ -153,7 +188,7 @@ HeyWalk adalah proyek independen yang dibangun untuk Meta Global AI Developer Ha
 
 ## English summary
 
-**HeyWalk — Make AI-generated robot behaviors prove they work.** HeyWalk turns human intent into executable robot behavior, runs it in a physics-based simulation (MuJoCo + ROS 2 + an upstream ONNX walking policy), measures what happened with an independent evaluator, and feeds failure evidence back to Meta Muse Spark for targeted fixes.
+**HeyWalk — Make AI-generated robot behaviors prove they work.** HeyWalk turns human intent into executable robot behavior, runs it in a physics-based simulation (MuJoCo + ROS 2 + an upstream ONNX walking policy), measures what happened with an independent evaluator, and feeds failure evidence back to the configured AI model for targeted fixes.
 
 We are inviting **Indonesian universities, polytechnics, robotics clubs, and vocational high schools (SMK)** to explore a hands-on, simulation-first HeyWalk pilot — no physical robot fleet required, just accessible computers. [Propose a pilot here](https://forms.gle/PeFbz6iE5rFzi1sx6) (±1 minute form, reply within 2 business days). Full technical documentation lives in [README_HACKATHON.md](README_HACKATHON.md).
 

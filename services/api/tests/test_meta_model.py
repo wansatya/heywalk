@@ -1,4 +1,4 @@
-"""Unit tests for the Muse Spark integration (AGENTS.md section 6).
+"""Unit tests for the AI model integration (AGENTS.md section 6).
 
 Covers prompt building, structured-output parsing/validation, the live HTTP
 client (via httpx.MockTransport -- no network), retry/timeout behavior, the

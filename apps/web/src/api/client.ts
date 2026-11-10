@@ -15,6 +15,8 @@ import type {
   GenerationResult,
   RobotModel,
   ModelRequest,
+  ModelSettings,
+  ModelSettingsUpdate,
   Project,
   ProjectFileContent,
   ProjectFileEntry,
@@ -214,6 +216,16 @@ export function requestFix(projectId: string, runId: string): Promise<FixResult>
 
 export function listModelRequests(projectId: string): Promise<ModelRequest[]> {
   return get<ModelRequest[]>(`/api/projects/${projectId}/model-requests`)
+}
+
+// ---- Model settings ----
+
+export function getModelSettings(): Promise<ModelSettings> {
+  return get<ModelSettings>('/api/settings/model')
+}
+
+export function updateModelSettings(patch: ModelSettingsUpdate): Promise<ModelSettings> {
+  return put<ModelSettings>('/api/settings/model', patch)
 }
 
 // ---- Starter robots ----

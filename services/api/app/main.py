@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import foundry, generation, projects, robots, runs, stream
+from .api import settings as settings_api
 from .config import Settings, load_settings
 from .db import Store
 from .foundry.jobs import FoundryJobManager
@@ -71,6 +72,7 @@ def create_app(
         return {"status": "ok", "service": "heywalk-api", "version": API_VERSION}
 
     app.include_router(projects.router)
+    app.include_router(settings_api.router)
     app.include_router(foundry.router)
     app.include_router(generation.router)
     app.include_router(robots.router)

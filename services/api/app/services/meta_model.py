@@ -1,13 +1,14 @@
-"""Meta Muse Spark integration (AGENTS.md section 6).
+"""AI model integration (AGENTS.md section 6).
 
-Live client for the official Meta Model API plus prompt builders, structured
+Live client for the configured model API plus prompt builders, structured
 output schemas, and response parsing/validation.
 
 API choice (verified against Meta's public docs and provider references):
 the Meta Model API lives at ``https://api.meta.ai/v1`` (configurable via
 ``META_API_BASE_URL``), authenticates with ``Authorization: Bearer
 MODEL_API_KEY``, and accepts the Responses, Chat Completions, and Messages
-formats for ``muse-spark-1.3``. This client uses the OpenAI-compatible Chat
+formats for the default model. Any OpenAI-compatible Chat Completions
+endpoint works. This client uses the OpenAI-compatible Chat
 Completions endpoint (``POST {base}/chat/completions``) with a JSON-schema
 ``response_format`` so controller code arrives as machine-readable structured
 output. Response parsing stays tolerant: JSON is extracted from the message
@@ -59,9 +60,16 @@ MAX_LOG_LINE_CHARS = 500
 MAX_EVIDENCE_CHARS = 12000
 MAX_FILE_CHARS_IN_PROMPT = 8000
 
+#: User-facing error when no API key is configured (mapped to HTTP 503).
+#: Provider-neutral: any OpenAI-compatible Chat Completions endpoint works.
+NOT_CONFIGURED_MESSAGE = (
+    "AI model API is not configured: set an API key in Settings "
+    "(or MODEL_API_KEY on the server)."
+)
+
 
 class MetaModelError(Exception):
-    """Base class for Muse Spark integration failures.
+    """Base class for AI model integration failures.
 
     Handlers attach a stage trace (and sometimes a hint) before the error
     reaches the API layer so failures explain what happened under the hood.
@@ -945,7 +953,7 @@ def hint_for_error(exc: Exception) -> str | None:
 
 
 class HttpMetaModelClient:
-    """Live client for the Meta Model API Chat Completions endpoint."""
+    """Live client for an OpenAI-compatible Chat Completions endpoint."""
 
     def __init__(
         self,
@@ -954,9 +962,7 @@ class HttpMetaModelClient:
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         if not settings.model_api_key:
-            raise MetaModelNotConfiguredError(
-                "Muse Spark API is not configured: set MODEL_API_KEY on the server."
-            )
+            raise MetaModelNotConfiguredError(NOT_CONFIGURED_MESSAGE)
         self._api_key = settings.model_api_key
         self._base_url = settings.meta_api_base_url.rstrip("/")
         self._timeout_s = settings.model_timeout_s
@@ -1145,29 +1151,23 @@ class HttpMetaModelClient:
 class StubMetaModelClient:
     """Honest placeholder: refuses to invent controller code."""
 
-    model_name = "muse-spark-stub (live API not configured)"
+    model_name = "model-stub (live API not configured)"
 
     async def generate_controller(
         self, context: GenerationContext
     ) -> GenerationResult:
-        raise MetaModelNotConfiguredError(
-            "Muse Spark API is not configured: set MODEL_API_KEY on the server."
-        )
+        raise MetaModelNotConfiguredError(NOT_CONFIGURED_MESSAGE)
 
     async def propose_fix(self, evidence: FixEvidence) -> FixResult:
-        raise MetaModelNotConfiguredError(
-            "Muse Spark API is not configured: set MODEL_API_KEY on the server."
-        )
+        raise MetaModelNotConfiguredError(NOT_CONFIGURED_MESSAGE)
 
     async def interpret_task(
         self, task_description: str
     ) -> TaskInterpretation:
-        raise MetaModelNotConfiguredError(
-            "Muse Spark API is not configured: set MODEL_API_KEY on the server."
-        )
+        raise MetaModelNotConfiguredError(NOT_CONFIGURED_MESSAGE)
 
 
-DEV_MOCK_LABEL = "DEV MOCK — not a live Muse Spark result"
+DEV_MOCK_LABEL = "DEV MOCK — not a live model result"
 
 DEV_MOCK_CONTROLLER = '''\
 """DEV MOCK controller: tracks the automated joint targets. NOT model output."""
@@ -1257,7 +1257,7 @@ class DevMockMetaModelClient:
     its output as a live model result would violate AGENTS.md section 14.
     """
 
-    model_name = "dev-mock-0.1 (NOT live Muse Spark)"
+    model_name = "dev-mock-0.1 (NOT live model output)"
 
     async def generate_controller(
         self, context: GenerationContext
@@ -1308,14 +1308,12 @@ class DevMockMetaModelClient:
 
 
 def build_client(settings: Settings) -> MetaModelClient:
-    """Return the live AI client for the configured Muse model.
+    """Return the live AI client for the configured model.
 
     Raises MetaModelNotConfiguredError when no API key is present, so callers
     surface an explicit integration error (HTTP 503). Never returns the dev
     mock: mock output must never be presented as a live model result.
     """
     if not settings.model_api_key:
-        raise MetaModelNotConfiguredError(
-            "Muse Spark API is not configured: set MODEL_API_KEY on the server."
-        )
+        raise MetaModelNotConfiguredError(NOT_CONFIGURED_MESSAGE)
     return HttpMetaModelClient(settings)

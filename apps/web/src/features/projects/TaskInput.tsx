@@ -55,7 +55,7 @@ export function TaskInput() {
             aria-live="polite"
           >
             <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-stone-400 border-t-transparent" />
-            Muse Spark is generating the controller from this task… {generationElapsed}s
+            AI model is generating the controller from this task… {generationElapsed}s
           </div>
         )}
       </div>

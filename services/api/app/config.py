@@ -164,6 +164,93 @@ def _load_dotenv_values() -> tuple[dict[str, str], str]:
     return _parse_dotenv(path), str(path)
 
 
+#: Setting names the runtime settings API may persist, mapped to .env keys.
+MODEL_DOTENV_KEYS: dict[str, str] = {
+    "model_api_key": "MODEL_API_KEY",
+    "meta_api_base_url": "META_API_BASE_URL",
+    "muse_model": "MUSE_MODEL",
+}
+
+
+def model_env_locks() -> dict[str, bool]:
+    """Which model settings an explicit process env var pins.
+
+    A pinned value still takes effect in memory when changed via the
+    settings API, but the next restart restores the env value — the UI
+    warns about that from these flags.
+    """
+    return {
+        name: key in os.environ for name, key in MODEL_DOTENV_KEYS.items()
+    }
+
+
+def default_persist_path(loaded_path: str = "") -> Path:
+    """Where runtime settings updates are persisted.
+
+    The loaded .env wins; otherwise the repo-root .env (three levels above
+    this file: app/ → api/ → services/ → repo) so host-side and compose
+    runs share one file.
+    """
+    if loaded_path.strip():
+        return Path(loaded_path).expanduser()
+    found = _find_dotenv()
+    if found is not None:
+        return found
+    return Path(__file__).resolve().parents[3] / ".env"
+
+
+def _quote_dotenv_value(value: str) -> str:
+    if not value or re.fullmatch(r"[A-Za-z0-9_./:+-]+", value):
+        return value
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def persist_dotenv_values(path: Path, updates: dict[str, str]) -> Path:
+    """Rewrite keys in a .env file, preserving comments/ order/unknown keys.
+
+    Only KNOWN_DOTENV_KEYS may be written; anything else raises KeyError.
+    A missing file is created with mode 0600 since it may hold secrets.
+    Returns the path written.
+    """
+    for key in updates:
+        if key not in KNOWN_DOTENV_KEYS:
+            raise KeyError(f"Refusing to persist unknown .env key: {key!r}.")
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        lines = []
+    seen: set[str] = set()
+    kept: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        candidate = stripped[7:].strip() if stripped.startswith("export ") else stripped
+        key, separator, _ = candidate.partition("=")
+        if (
+            separator
+            and _KEY_RE.fullmatch(key.strip() or "")
+            and key.strip() in updates
+        ):
+            normalized = key.strip()
+            if normalized in seen:
+                continue  # drop duplicate definitions
+            seen.add(normalized)
+            kept.append(f"{normalized}={_quote_dotenv_value(updates[normalized])}")
+        else:
+            kept.append(raw_line)
+    for key, value in updates.items():
+        if key not in seen:
+            kept.append(f"{key}={_quote_dotenv_value(value)}")
+    existed = path.exists()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    if not existed:
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+    return path
+
+
 def load_settings() -> Settings:
     dotenv, dotenv_path = _load_dotenv_values()
 

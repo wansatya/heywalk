@@ -18,7 +18,7 @@
   <a href="https://docs.ros.org/en/jazzy/"><img alt="ROS 2 Jazzy" src="https://img.shields.io/badge/ROS%202-Jazzy-22314E?style=flat-square&logo=ros&logoColor=white"></a>
   <a href="https://mujoco.org/"><img alt="Physics: MuJoCo" src="https://img.shields.io/badge/physics-MuJoCo-1a1a1a?style=flat-square"></a>
   <a href="https://onnxruntime.ai/"><img alt="Gait: ONNX Runtime" src="https://img.shields.io/badge/gait-ONNX%20Runtime-005CED?style=flat-square"></a>
-  <a href="https://ai.meta.com/"><img alt="AI: Meta Muse Spark" src="https://img.shields.io/badge/AI-Meta%20Muse%20Spark-0866FF?style=flat-square"></a>
+  <img alt="AI: OpenAI-compatible" src="https://img.shields.io/badge/AI-OpenAI--compatible-412991?style=flat-square">
   <a href="docker/runner.Dockerfile"><img alt="Runs: isolated Docker container" src="https://img.shields.io/badge/runs-isolated%20Docker-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
   <a href="services/api/tests"><img alt="Backend tests: 391 passing" src="https://img.shields.io/badge/backend%20tests-396%20passing-2ea043?style=flat-square"></a>
 </p>
@@ -29,7 +29,7 @@
 
 AI can generate robot code. But generated code is not **proof that a robot can perform the task safely**.
 
-HeyWalk is an AI-powered robotics experiment engine that uses Meta Muse Spark to generate ROS 2 controllers, execute them in a simulated environment, evaluate their behavior against measurable criteria, and diagnose failures so the controller can be improved and tested again.
+HeyWalk is an AI-powered robotics experiment engine that uses a configured AI model to generate ROS 2 controllers, execute them in a simulated environment, evaluate their behavior against measurable criteria, and diagnose failures so the controller can be improved and tested again.
 
 Instead of asking whether AI can write robotics code, HeyWalk asks a harder question:
 
@@ -59,16 +59,16 @@ Most AI coding workflows end when code is generated. Robotics needs another step
 
 HeyWalk connects four capabilities into one experiment loop:
 
-- **Generate:** Meta Muse Spark translates natural-language instructions into a ROS 2 Python controller.
+- **Generate:** The AI model translates natural-language instructions into a ROS 2 Python controller.
 - **Execute:** The controller runs in an isolated environment and communicates with a robot simulation through real ROS 2 topics.
 - **Verify:** An independent evaluator checks the robot's actual simulated behavior against task and safety criteria.
-- **Improve:** When a run fails, Muse Spark receives structured evidence, proposes a targeted correction, and the updated controller is tested again in the same scenario.
+- **Improve:** When a run fails, the AI model receives structured evidence, proposes a targeted correction, and the updated controller is tested again in the same scenario.
 
 ```text
 Human intent
      |
      v
-Muse Spark generates a controller
+AI model generates a controller
      |
      v
 ROS 2 execution + simulated environment
@@ -101,7 +101,7 @@ The default sequence walks a free-standing biped: the official Pollen Robotics *
 
 HeyWalk turns that instruction into an ordered sequence of objectives (`kick` the ball, then `go_to` the crate), generates a ROS 2 controller that steers the walking policy phase by phase, runs it in the isolated runner, and records what actually happened: distance walked, closest approach, contact events, trunk height, ball displacement, emergency-stop latency, and per-phase timing.
 
-If the robot falls short, stops too early, or misses the ball, the failure is measured — not assumed. That evidence is sent to Muse Spark, which returns a targeted patch. The controller is rerun in the same world with the same seed, and the two runs are compared side by side.
+If the robot falls short, stops too early, or misses the ball, the failure is measured — not assumed. That evidence is sent to the AI model, which returns a targeted patch. The controller is rerun in the same world with the same seed, and the two runs are compared side by side.
 
 Each sequence preserves the connection between:
 
@@ -142,7 +142,7 @@ The user creates a **sequence** (the UI term for a project) and writes the task 
 
 ### 2. Generate the controller
 
-`POST /api/projects/{id}/generate` asks Muse Spark for a structured response:
+`POST /api/projects/{id}/generate` asks the AI model for a structured response:
 
 | Field | Purpose |
 |---|---|
@@ -194,7 +194,7 @@ Run states are validated and timestamped: `queued → preparing → running → 
 
 ### 7. Diagnose and fix
 
-`POST /api/projects/{id}/fix` sends a bounded evidence bundle to Muse Spark: the task, the controller sources, the robot description, the relevant logs, the telemetry tail, and the evaluator report with per-phase results. The model returns:
+`POST /api/projects/{id}/fix` sends a bounded evidence bundle to the AI model: the task, the controller sources, the robot description, the relevant logs, the telemetry tail, and the evaluator report with per-phase results. The model returns:
 
 | Field | Purpose |
 |---|---|
@@ -245,7 +245,7 @@ Walking a free-standing biped is a control problem, not a scripted animation. Ho
 | **Steering** | The twist command (`vx`, `vy`, `yaw`) the controller publishes on `/cmd_vel` |
 | **Cost** | ~0.22 ms per inference (ONNX Runtime is C++) |
 
-The policy makes the duck *balance and step*. It does not know where the goal is, what the obstacles are, or what phase the task is in. That is precisely the part Muse Spark writes: a ROS 2 controller that reads the goal, reads odometry and the phase channel, and steers the policy.
+The policy makes the duck *balance and step*. It does not know where the goal is, what the obstacles are, or what phase the task is in. That is precisely the part the AI model writes: a ROS 2 controller that reads the goal, reads odometry and the phase channel, and steers the policy.
 
 ### What each layer decides
 
@@ -253,8 +253,8 @@ The policy makes the duck *balance and step*. It does not know where the goal is
 |---|---|---|
 | Rigid-body dynamics, contact, falls | MuJoCo (C) | No — fixed engine |
 | Balance and gait | Upstream ONNX policy | No — pretrained upstream |
-| Navigation, phase sequencing, speed limits, stop behavior | ROS 2 controller | **Yes — Muse Spark** |
-| Objective sequence | Muse Spark (declared), validated by the platform | Yes, then validated |
+| Navigation, phase sequencing, speed limits, stop behavior | ROS 2 controller | **Yes — AI model** |
+| Objective sequence | AI model (declared), validated by the platform | Yes, then validated |
 | Verdict and metrics | Platform evaluator | No — independent |
 
 This split is what makes the claims honest. HeyWalk does not claim the model learned to walk. It claims the model wrote control logic, and the platform measured whether that logic achieved a task with a physical robot model — and it says exactly which layer did what.
@@ -342,7 +342,7 @@ Three fixes, each measured: telemetry is **coalesced** (newest sample at most ev
 
 ## Technology
 
-- **AI reasoning and generation:** Meta Muse Spark through the Meta Model API (`muse-spark-1.3`), JSON-schema response format, bounded retries, validated output.
+- **AI reasoning and generation:** Any OpenAI-compatible Chat Completions endpoint (default `muse-spark-1.3` via `META_API_BASE_URL`), JSON-schema response format, bounded retries, validated output.
 - **Frontend:** React, Vite, TypeScript, Tailwind CSS 4, Zustand, Monaco Editor, three.js.
 - **Backend:** Python and FastAPI.
 - **Robotics:** ROS 2 Jazzy, Python controllers, standard ROS 2 messages (`JointState`, `Twist`, `Odometry`, `PoseStamped`, `Float64MultiArray`, `Bool`, `String`).
@@ -413,10 +413,10 @@ heywalk/
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.12+ (managed via [uv](https://docs.astral.sh/uv/))
 - Node.js 18+
 - Docker for isolated execution
-- A Meta Model API key for live Muse Spark generation
+- A model API key for live AI generation
 
 ### 1. Configure the project
 
@@ -436,12 +436,13 @@ META_API_BASE_URL=https://api.meta.ai/v1
 
 Keep the API key on the backend. Never expose it to browser code or bake it into an image.
 
+`MODEL_API_KEY`, `MUSE_MODEL`, and `META_API_BASE_URL` can also be changed at runtime via the web UI Settings menu (saved back to `.env`, effective immediately). Any OpenAI-compatible Chat Completions endpoint works.
+
 ### 2. Install dependencies
 
 ```bash
 cd services/api
-python3 -m venv .venv
-.venv/bin/pip install -e '.[test]'
+uv sync --extra test
 ```
 
 The `test` extra pulls in `mujoco`, `numpy`, and `onnxruntime` so the physics and policy tests run locally. Only the isolated runner needs the physics engine at run time; the API evaluates recorded evidence without it.
@@ -457,11 +458,10 @@ The image `COPY`s `app/`, including the vendored MicroDuck model and `velstand.o
 ### 4. Start the backend
 
 ```bash
-MODEL_API_KEY=LLM_xxx \
-HEYWALK_DB=./heywalk.db \
-RUNNER_BACKEND=docker \
-.venv/bin/uvicorn app.main:app --port 8000
+uv run --extra test uvicorn app.main:app --port 8000
 ```
+
+`MODEL_API_KEY`, `HEYWALK_DB`, and `RUNNER_BACKEND` come from the `.env` configured in step 1 (the backend loads the repo `.env` automatically).
 
 `GET /health` (also served at `/api/health`) returns a JSON status payload (`status`, `service`, `version`) when the service is ready. The Docker stack uses it as its healthcheck.
 
@@ -520,8 +520,8 @@ Run the backend tests:
 
 ```bash
 cd services/api
-.venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q
+uv sync --extra test
+uv run --extra test python -m pytest -q
 ```
 
 Build the frontend:

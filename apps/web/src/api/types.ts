@@ -684,3 +684,25 @@ export function testPassRate(
   }
   return fromMetrics
 }
+
+// ---- Model settings ----
+
+/** Effective AI-model config. The API key itself is never returned. */
+export interface ModelSettings {
+  base_url: string
+  model: string
+  configured: boolean
+  key_hint: string
+  api_key_from_env: boolean
+  base_url_from_env: boolean
+  model_from_env: boolean
+  persist_path: string
+  persisted: boolean
+}
+
+/** Partial update: omitted fields stay unchanged, "" clears the key. */
+export interface ModelSettingsUpdate {
+  base_url?: string
+  model?: string
+  api_key?: string
+}
