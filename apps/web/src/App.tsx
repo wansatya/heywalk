@@ -54,6 +54,7 @@ export default function App() {
   useEffect(() => {
     const workspace = useWorkspaceStore.getState()
     const experiments = useExperimentStore.getState()
+    void useSettingsStore.getState().refresh()
     void workspace.refreshProjects().then(() => {
       const id = useWorkspaceStore.getState().activeProjectId
       if (id) void experiments.fetchRuns(id)

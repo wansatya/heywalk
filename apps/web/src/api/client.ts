@@ -60,6 +60,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Strip markup and cap length so a proxy/CDN error page never dumps raw HTML. */
+function cleanTextBody(trimmed: string, fallback: string): string {
+  const text = trimmed.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!text) return fallback
+  return text.length > 300 ? `${text.slice(0, 300).trimEnd()}…` : text
+}
+
 /** Split an HTTP error body into a clean message plus optional structured detail. */
 function parseErrorBody(body: string, status: number, path: string): { message: string; detail: ApiErrorDetail | null } {
   const fallback = `Request failed with HTTP ${status}: ${path}`
@@ -83,9 +90,9 @@ function parseErrorBody(body: string, status: number, path: string): { message: 
         }
       }
     }
-    return { message: trimmed, detail: null }
+    return { message: cleanTextBody(trimmed, fallback), detail: null }
   } catch {
-    return { message: trimmed, detail: null }
+    return { message: cleanTextBody(trimmed, fallback), detail: null }
   }
 }
 

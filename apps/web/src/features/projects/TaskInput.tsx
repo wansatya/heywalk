@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react'
 import { useWorkspaceStore } from '../../stores/workspace'
+import { useSettingsStore } from '../../stores/settings'
 import { ActionButton, Panel } from '../../components/Panel'
 import { useElapsedSeconds } from '../../components/useElapsedSeconds'
 
@@ -10,11 +11,15 @@ export function TaskInput() {
   const generate = useWorkspaceStore((s) => s.generate)
   const generation = useWorkspaceStore((s) => s.generation)
   const fix = useWorkspaceStore((s) => s.fix)
+  const modelConfigured = useSettingsStore((s) => s.settings.data?.configured ?? null)
+  const setSettingsOpen = useSettingsStore((s) => s.setOpen)
 
   const generating = generation.status === 'loading'
   const fixing = fix.status === 'loading'
   const generationElapsed = useElapsedSeconds(generating)
   const taskEmpty = taskDraft.trim().length === 0
+  // Disable only on a known-missing key; unknown (loading/error) stays enabled.
+  const needsKey = modelConfigured === false
 
   return (
     <Panel
@@ -23,12 +28,14 @@ export function TaskInput() {
       actions={
         <ActionButton
           onClick={() => void generate()}
-          disabled={!activeProjectId || taskEmpty || generating || fixing}
+          disabled={!activeProjectId || taskEmpty || generating || fixing || needsKey}
           variant="primary"
           title={
-            taskEmpty
-              ? 'Describe the task first (or pick an example below)'
-              : 'Generate the robot behavior from this task description'
+            needsKey
+              ? 'Set an API key in Settings to enable AI generation'
+              : taskEmpty
+                ? 'Describe the task first (or pick an example below)'
+                : 'Generate the robot behavior from this task description'
           }
         >
           <Sparkles size={14} />
@@ -56,6 +63,14 @@ export function TaskInput() {
           >
             <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-stone-400 border-t-transparent" />
             AI model is generating the controller from this task… {generationElapsed}s
+          </div>
+        )}
+        {needsKey && !generating && (
+          <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <span>AI generation needs an API key.</span>
+            <ActionButton onClick={() => setSettingsOpen(true)} title="Open AI model settings">
+              Settings
+            </ActionButton>
           </div>
         )}
       </div>

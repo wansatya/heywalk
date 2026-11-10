@@ -1,6 +1,7 @@
 import { Bot, CheckCircle2, FlaskConical, Gauge, RotateCcw, Wrench, XCircle } from 'lucide-react'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useExperimentStore } from '../../stores/experiment'
+import { useSettingsStore } from '../../stores/settings'
 import { ActionButton, Panel, LoadingRow } from '../../components/Panel'
 import { DiffView } from '../../components/DiffView'
 import { TraceView } from '../../components/TraceView'
@@ -115,6 +116,7 @@ export function DiagnosticsPanel() {
   const robotInstall = useWorkspaceStore((s) => s.robotInstall)
   const fixing = fix.status === 'loading'
   const generating = generation.status === 'loading'
+  const needsKey = useSettingsStore((s) => s.settings.data?.configured ?? null) === false
   const modelElapsed = useElapsedSeconds(fixing)
   const lastRequest = modelRequests[0] ?? null
 
@@ -144,13 +146,15 @@ export function DiagnosticsPanel() {
       actions={
         <ActionButton
           onClick={() => activeRunId && void fixFromRun(activeRunId)}
-          disabled={!activeRunId || !runFinished || generating || fixing}
+          disabled={!activeRunId || !runFinished || generating || fixing || needsKey}
           title={
-            !activeRunId
-              ? 'Run the simulation first'
-              : !runFinished
-                ? 'Wait for the run to finish'
-                : 'Ask the model to diagnose the run and propose a targeted fix'
+            needsKey
+              ? 'Set an API key in Settings to enable AI diagnosis'
+              : !activeRunId
+                ? 'Run the simulation first'
+                : !runFinished
+                  ? 'Wait for the run to finish'
+                  : 'Ask the model to diagnose the run and propose a targeted fix'
           }
         >
           <Wrench size={14} />

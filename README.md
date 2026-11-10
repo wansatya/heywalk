@@ -133,7 +133,8 @@ Buka [http://localhost:5173](http://localhost:5173) — Vite meneruskan panggila
 
 Tanpa API key pun simulator tetap berjalan; API key hanya dibutuhkan untuk pembuatan dan perbaikan kontroler oleh AI. Atur API URL, nama model, dan API key lewat menu **Settings** (ikon gear) — tanpa restart; endpoint apa pun yang kompatibel dengan OpenAI Chat Completions bisa dipakai.
 
-> Catatan: `RUNNER_BACKEND=local` menjalankan kontroler sebagai subprocess di mesin yang sama (cukup untuk development, tanpa isolasi container). Untuk eksekusi run yang terisolasi, instal Docker, bangun image runner sekali (`docker compose --profile runner-build build runner`), lalu set `RUNNER_BACKEND=docker` di `.env`.
+> Catatan: `RUNNER_BACKEND=local` menjalankan kontroler sebagai subprocess di mesin yang sama (cukup untuk development, tanpa isolasi container). 
+Untuk eksekusi run yang terisolasi, instal Docker, bangun image runner sekali (`docker compose --profile runner-build build runner`), lalu set `RUNNER_BACKEND=docker` di `.env`.
 
 Rute API, batasan keselamatan, dan detail teknis ada di [README_HACKATHON.md](README_HACKATHON.md).
 
